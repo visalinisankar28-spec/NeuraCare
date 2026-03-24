@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NeuraCare 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root{
+  --bg:#F7F8FC;--surface:#FFFFFF;--surface-2:#EFF1F8;--border:#E2E5F0;
+  --text-primary:#111827;--text-secondary:#6B7280;--text-muted:#9CA3AF;
+  --accent:#2563EB;--accent-light:#EFF6FF;
+  --success:#10B981;--success-light:#ECFDF5;
+  --warning:#F59E0B;--warning-light:#FFFBEB;
+  --danger:#EF4444;--danger-light:#FEF2F2;
+  --r:16px;--rs:10px;--rx:6px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
+  --sh-md:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);
+  --nav-h:68px;--hdr-h:60px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text-primary);font-size:15px;line-height:1.5}
+
+/* ═══════════════════════════════════════════════
+   APP SHELL  — single container, screens swap inside
+═══════════════════════════════════════════════ */
+#app{
+  width:100%;max-width:430px;height:100dvh;
+  margin:0 auto;display:flex;flex-direction:column;
+  background:var(--bg);position:relative;overflow:hidden;
+}
+
+/* ═══════════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════════ */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
+.screen.active{display:flex;animation:slideIn .22s ease}
+
+@keyframes slideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideBack{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes blink{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════════════
+   SCROLL AREA  — fills between header and nav
+═══════════════════════════════════════════════ */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.scroll-area::-webkit-scrollbar{display:none}
+/* padding-bottom is set per-screen via .has-nav  */
+.has-nav .scroll-area{padding-bottom:calc(var(--nav-h) + 8px)}
+.no-nav  .scroll-area{padding-bottom:24px}
+
+/* ═══════════════════════════════════════════════
+   HEADER  — three variants
+   .hdr-main   → icon + title/sub + right slot  (home screens)
+   .hdr-back   → back arrow + title             (sub-screens)
+   .hdr-plain  → just title                     (splash/register)
+═══════════════════════════════════════════════ */
+.hdr{
+  height:var(--hdr-h);background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;
+}
+/* Back button */
+.hdr-back-btn{
+  width:40px;height:40px;border-radius:12px;border:none;
+  background:var(--surface-2);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:background .15s;padding:0;
+  font-size:20px;line-height:1;font-weight:500;
+}
+.hdr-back-btn:active{background:var(--border)}
+
+/* Icon bubble (home screens) */
+.hdr-icon{
+  width:36px;height:36px;border-radius:50%;background:var(--accent-light);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;
+}
+.hdr-titles{flex:1;min-width:0}
+.hdr-title{
+  font-family:'Fraunces',serif;font-size:18px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.hdr-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.hdr-badge{
+  background:var(--danger);color:white;font-size:10px;font-weight:600;
+  border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;
+}
+
+/* ═══════════════════════════════════════════════
+   BOTTOM NAV
+═══════════════════════════════════════════════ */
+.bottom-nav{
+  height:var(--nav-h);background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;flex-shrink:0;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;cursor:pointer;
+  color:var(--text-muted);transition:color .18s;
+  position:relative;user-select:none;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:22px;line-height:1}
+.nav-label{font-size:10px;font-weight:500;letter-spacing:.3px}
+.nav-dot{
+  position:absolute;top:9px;right:calc(50% - 15px);
+  width:7px;height:7px;background:var(--danger);
+  border-radius:50%;border:2px solid var(--surface);
+}
+
+/* ═══════════════════════════════════════════════
+   CARDS, BUTTONS, INPUTS  (unchanged)
+═══════════════════════════════════════════════ */
+.card{background:var(--surface);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.card+.card{margin-top:12px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:12px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-success{background:var(--success);color:white}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text-primary)}
+.btn-sm{padding:8px 14px;font-size:12px;border-radius:var(--rx)}
+.btn-full{width:100%}
+.btn-row{display:flex;gap:8px}
+
+.input-group{margin-bottom:14px}
+.input-label{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block}
+.input-field{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-primary);background:var(--surface);outline:none;transition:border-color .15s}
+.input-field:focus{border-color:var(--accent)}
+select.input-field{-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+
+/* ═══════════════════════════════════════════════
+   SECTION WRAPPER
+═══════════════════════════════════════════════ */
+.section{padding:16px}
+.section+.section{padding-top:0}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:12px}
+
+/* ═══════════════════════════════════════════════
+   VITALS
+═══════════════════════════════════════════════ */
+.vitals-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vital-card{background:var(--surface);border-radius:var(--r);padding:16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden}
+.vital-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--vital-color,var(--accent))}
+.vital-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted)}
+.vital-value{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;line-height:1}
+.vital-unit{font-size:11px;color:var(--text-muted)}
+.vital-icon{font-size:20px;margin-bottom:2px}
+.vital-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;align-self:flex-start}
+.status-normal{background:var(--success-light);color:var(--success)}
+.status-warning{background:var(--warning-light);color:var(--warning)}
+.status-danger{background:var(--danger-light);color:var(--danger)}
+.trend{font-size:10px;font-weight:600;margin-left:4px}
+.trend.up{color:var(--danger)}.trend.down{color:var(--success)}.trend.stable{color:var(--text-muted)}
+
+/* ═══════════════════════════════════════════════
+   RISK BANNER
+═══════════════════════════════════════════════ */
+.risk-banner{border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:14px;transition:all .4s}
+.risk-banner.low{background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border:1px solid #A7F3D0}
+.risk-banner.medium{background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1px solid #FCD34D}
+.risk-banner.high{background:linear-gradient(135deg,#FEF2F2,#FEE2E2);border:1px solid #FCA5A5;animation:blink 2s infinite}
+.risk-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+.risk-dot.low{background:var(--success);box-shadow:0 0 0 4px rgba(16,185,129,.2)}
+.risk-dot.medium{background:var(--warning);box-shadow:0 0 0 4px rgba(245,158,11,.2)}
+.risk-dot.high{background:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.2)}
+.risk-text-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-secondary)}
+.risk-text-value{font-family:'Fraunces',serif;font-size:19px;font-weight:300}
+.risk-score{margin-left:auto;font-family:'DM Mono',monospace;font-size:28px;font-weight:500}
+
+/* ═══════════════════════════════════════════════
+   ALERT / NOTIFICATION ROWS
+═══════════════════════════════════════════════ */
+.alert-item{background:var(--surface);border-radius:var(--rs);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--sh);margin-bottom:8px;position:relative;overflow:hidden}
+.alert-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--alert-color,var(--accent))}
+.alert-title{font-size:14px;font-weight:500}
+.alert-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.pill{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:20px}
+.pill-pending{background:#FEF3C7;color:#92400E}
+.pill-ack{background:#EFF6FF;color:#1E40AF}
+.pill-escalated{background:#FEE2E2;color:#991B1B}
+.pill-closed{background:#F3F4F6;color:#6B7280}
+
+.notif-item{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start}
+.notif-item.unread{background:var(--accent-light)}
+.notif-icon-wrap{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+
+/* ═══════════════════════════════════════════════
+   PATIENT ROWS
+═══════════════════════════════════════════════ */
+.patient-row{background:var(--surface);border-radius:var(--rs);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh);margin-bottom:8px;cursor:pointer}
+.patient-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:15px;color:var(--accent);flex-shrink:0}
+
+/* ═══════════════════════════════════════════════
+   DOCTOR ALERT CARD
+═══════════════════════════════════════════════ */
+.doc-card{background:var(--surface);border-radius:var(--r);padding:20px;box-shadow:var(--sh-md);border-left:4px solid var(--danger);margin-bottom:12px}
+.doc-card-title{font-family:'Fraunces',serif;font-size:18px;margin-bottom:4px}
+.doc-card-meta{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+
+/* ═══════════════════════════════════════════════
+   VITAL CHIPS (used in detail views)
+═══════════════════════════════════════════════ */
+.vitals-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:var(--surface-2);border-radius:6px;padding:6px 10px;text-align:center}
+.chip-label{font-size:9px;color:var(--text-muted);text-transform:uppercase}
+.chip-val{font-family:'DM Mono',monospace;font-size:14px;font-weight:500}
+
+/* ═══════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════ */
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-row label{font-size:13px;color:var(--text-secondary)}
+.info-row span{font-size:13px;font-weight:500}
+.tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px}
+.tag-green{background:var(--success-light);color:var(--success)}
+.tag-yellow{background:var(--warning-light);color:var(--warning)}
+.tag-red{background:var(--danger-light);color:var(--danger)}
+.tag-blue{background:var(--accent-light);color:var(--accent)}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-icon{font-size:42px;margin-bottom:12px}
+.empty-title{font-size:16px;font-weight:500;color:var(--text-secondary)}
+.empty-sub{font-size:13px;margin-top:6px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:32px}
+.mini-bar{flex:1;border-radius:2px 2px 0 0}
+.score-bar{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:8px}
+.score-fill{height:100%;border-radius:4px;transition:width .5s}
+.checkbox-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rs);background:var(--surface-2);margin-bottom:8px;cursor:pointer;user-select:none}
+.checkbox-box{width:20px;height:20px;border:2px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:white}
+.checkbox-box.checked{background:var(--accent);border-color:var(--accent)}
+.checkbox-box.checked::after{content:'✓';color:white;font-size:11px;font-weight:700}
+.history-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.reg-steps{display:flex;gap:8px;margin-bottom:24px}
+.reg-step{flex:1;height:3px;border-radius:2px;background:var(--border)}
+.reg-step.active{background:var(--accent)}
+
+/* ═══════════════════════════════════════════════
+   SPLASH
+═══════════════════════════════════════════════ */
+.splash-bg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:linear-gradient(160deg,#EFF6FF,#F0FDF4)}
+.splash-logo{width:80px;height:80px;background:var(--accent);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:24px;box-shadow:0 8px 32px rgba(37,99,235,.3)}
+.splash-title{font-family:'Fraunces',serif;font-size:34px;font-weight:300;text-align:center;line-height:1.1;margin-bottom:8px}
+.splash-sub{font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:40px;max-width:260px}
+.role-card{background:var(--surface);border-radius:var(--r);padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh-md);cursor:pointer;transition:all .2s;border:2px solid transparent;margin-bottom:10px;width:100%}
+.role-card:active{transform:scale(.98)}
+.role-card.selected{border-color:var(--accent);background:var(--accent-light)}
+.role-icon{font-size:26px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);border-radius:12px;flex-shrink:0}
+.role-title{font-size:15px;font-weight:600}
+.role-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* ═══════════════════════════════════════════════
+   BLE BADGE
+═══════════════════════════════════════════════ */
+.ble-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;border:none;white-space:nowrap;transition:all .2s}
+.ble-badge.mode-mock{background:var(--warning-light);color:#92400E}
+.ble-badge.mode-connecting{background:#EDE9FE;color:#6D28D9}
+.ble-badge.mode-connected{background:var(--success-light);color:var(--success)}
+.ble-badge.mode-disconnected{background:var(--danger-light);color:var(--danger)}
+.ble-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ble-dot.blink{animation:pulse 1.4s infinite}
+.ble-dot.spin{animation:spin .8s linear infinite;border-radius:0;width:9px;height:9px;background:none;border:2px solid currentColor;border-top-color:transparent}
+
+/* ═══════════════════════════════════════════════
+   MOCK BANNER
+═══════════════════════════════════════════════ */
+.mock-banner{background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1px solid #FCD34D;border-radius:var(--rs);padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mock-banner-text{font-size:11px;color:#92400E;flex:1;line-height:1.5}
+
+/* Battery / Signal */
+.bat-bar{width:44px;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.bat-fill{height:100%;border-radius:3px;transition:width .5s,background .5s}
+.sig-bars{display:flex;align-items:flex-end;gap:2px;height:13px}
+.sig-bar{width:3px;border-radius:1px;background:var(--border)}
+.sig-bar.on{background:var(--success)}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+#toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:398px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--text-primary);color:white;border-radius:var(--rs);padding:13px 16px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--sh-md);animation:toastIn .3s ease;pointer-events:all}
+.toast.info{background:var(--accent)}.toast.success{background:var(--success)}.toast.warning{background:#D97706}.toast.danger{background:var(--danger)}
+.toast-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.toast-title{font-size:13px;font-weight:600}
+.toast-msg{font-size:12px;opacity:.85;margin-top:2px}
+
+/* ═══════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:flex-end;animation:fadeIn .2s ease}
+.modal-sheet{background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:22px 20px 40px;width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .3s ease}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:'Fraunces',serif;font-size:22px;font-weight:300;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--text-secondary);margin-bottom:18px}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     SPLASH  (no nav, no back)
+════════════════════════════════════════════ -->
+<div id="screen-splash" class="screen active no-nav">
+  <div class="splash-bg">
+    <div class="splash-logo">🫀</div>
+    <h1 class="splash-title">NeuraCare<br>2.0</h1>
+    <p class="splash-sub">Edge AI Maternal Health Monitoring System</p>
+    <div style="width:100%">
+      <div class="role-card" id="role-mother" onclick="selectRole('mother')">
+        <div class="role-icon">🤱</div>
+        <div><div class="role-title">Mother / Patient</div><div class="role-desc">View vitals, nutrition &amp; alerts</div></div>
+        <span style="margin-left:auto;color:var(--text-muted)">›</span>
+      </div>
+      <div class="role-card" id="role-worker" onclick="selectRole('worker')">
+        <div class="role-icon">👩‍⚕️</div>
+        <div><div class="role-title">Healthcare Worker</div><div class="role-desc">Monitor assigned patients</div></div>
+        <span style="margin-left:auto;color:var(--text-muted)">›</span>
+      </div>
+      <div class="role-card" id="role-doctor" onclick="selectRole('doctor')">
+        <div class="role-icon">🩺</div>
+        <div><div class="role-title">Doctor</div><div class="role-desc">Review escalated cases</div></div>
+        <span style="margin-left:auto;color:var(--text-muted)">›</span>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:18px;text-align:center">⚠️ Early warning system only. Not a diagnostic tool.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     WELCOME BACK  (auto-login screen)
+════════════════════════════════════════════ -->
+<div id="screen-welcome-back" class="screen no-nav">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:linear-gradient(160deg,#EFF6FF,#F0FDF4)">
+    <div style="width:72px;height:72px;background:var(--success);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:24px;box-shadow:0 8px 24px rgba(16,185,129,.3)">🤱</div>
+    <h2 style="font-family:'Fraunces',serif;font-size:28px;font-weight:300;text-align:center;margin-bottom:8px">Welcome back,<br><span id="wb-name" style="color:var(--accent)">Priya</span>!</h2>
+    <p id="wb-pid" style="font-size:13px;color:var(--text-muted);margin-bottom:6px">P001 · Week 24</p>
+    <p id="wb-region" style="font-size:12px;color:var(--text-muted);margin-bottom:36px">📍 Tamil Nadu</p>
+    <button class="btn btn-primary btn-full" style="max-width:300px" onclick="autoLogin()">Continue →</button>
+    <button class="btn btn-outline btn-sm" style="margin-top:12px;max-width:300px;width:100%" onclick="switchUser()">Switch User</button>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:20px;text-align:center">⚠️ Not a diagnostic tool</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     REGISTRATION  (back → splash)
+════════════════════════════════════════════ -->
+<div id="screen-register" class="screen no-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">New Patient</div><div class="hdr-sub">One-time setup</div></div>
+  </div>
+  <div class="scroll-area" style="padding-bottom:24px">
+    <div class="section">
+      <div class="reg-steps"><div class="reg-step active"></div><div class="reg-step"></div><div class="reg-step"></div></div>
+      <div class="card">
+        <div class="card-title">Your Information</div>
+
+        <div class="input-group">
+          <label class="input-label">Full Name * <span style="font-size:10px;color:var(--text-muted)">(2–50 characters)</span></label>
+          <input id="reg-name" class="input-field" type="text" placeholder="e.g. Priya Sharma" maxlength="50"
+            onblur="validateField('name',this)" oninput="clearFieldError('name',this)">
+          <div id="err-name" style="font-size:11px;color:var(--danger);margin-top:4px;display:none"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Age <span style="font-size:10px;color:var(--text-muted)">(16–55 years)</span></label>
+          <input id="reg-age" class="input-field" type="number" placeholder="e.g. 28" min="16" max="55"
+            onblur="validateField('age',this)" oninput="clearFieldError('age',this)">
+          <div id="err-age" style="font-size:11px;color:var(--danger);margin-top:4px;display:none"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Weeks Pregnant <span style="font-size:10px;color:var(--text-muted)">(1–42 weeks)</span></label>
+          <input id="reg-weeks" class="input-field" type="number" placeholder="e.g. 24" min="1" max="42"
+            oninput="clampWeeks(this)" onblur="validateField('weeks',this)">
+          <div id="err-weeks" style="font-size:11px;color:var(--danger);margin-top:4px;display:none"></div>
+        </div>
+        <div class="input-group"><label class="input-label">Patient ID (auto-generated)</label><input id="reg-pid" class="input-field" readonly style="background:var(--surface-2);color:var(--text-muted)"></div>
+        <div class="input-group">
+          <label class="input-label">📍 Your Region <span id="reg-gps-status" style="font-weight:400;color:var(--text-muted);font-size:11px"></span></label>
+          <select id="reg-region" class="input-field">
+            <option value="tamil_nadu">Tamil Nadu</option>
+            <option value="kerala">Kerala</option>
+            <option value="karnataka">Karnataka</option>
+            <option value="andhra_pradesh">Andhra Pradesh</option>
+            <option value="maharashtra">Maharashtra</option>
+            <option value="gujarat">Gujarat</option>
+            <option value="rajasthan">Rajasthan</option>
+            <option value="punjab">Punjab</option>
+            <option value="west_bengal">West Bengal</option>
+            <option value="odisha">Odisha</option>
+            <option value="other">Other / General</option>
+          </select>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Detected via GPS or select manually. Used for local food recommendations.</div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Assigned Healthcare Worker</label>
+          <select id="reg-worker" class="input-field">
+            <option value="HW01">HW01 — Nurse Anjali Rao</option>
+            <option value="HW02">HW02 — Nurse Meena Iyer</option>
+            <option value="HW03">HW03 — Nurse Fatima Khan</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="completeRegistration()">Complete Setup →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MOTHER — VITALS  (home, has nav)
+══════════════════════════════════════════════════ -->
+<div id="screen-mother-vitals" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="resetApp()" title="Back to role select"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles">
+      <div class="hdr-title" id="mother-greeting">Good morning</div>
+      <div class="hdr-sub" id="mother-pid-label">P001 · Week 24</div>
+    </div>
+    <div class="hdr-right">
+      <button id="ble-header-btn" class="ble-badge mode-mock" onclick="BLE.connect()" style="border:none">
+        <div class="ble-dot" id="ble-dot-h"></div><span id="ble-label-h">Mock</span>
+      </button>
+    </div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+      <div id="mock-banner" class="mock-banner">
+        <span style="font-size:18px">📡</span>
+        <div class="mock-banner-text"><strong>No ESP32 connected.</strong> Showing realistic mock data. Tap the badge to connect.</div>
+        <button class="btn btn-outline btn-sm" onclick="BLE.connect()" style="flex-shrink:0">Connect</button>
+      </div>
+      <div id="risk-banner" class="risk-banner low" style="margin-bottom:0">
+        <div id="risk-dot" class="risk-dot low"></div>
+        <div>
+          <div class="risk-text-label">Risk Level</div>
+          <div id="risk-label" class="risk-text-value" style="color:var(--success)">Low Risk</div>
+          <div id="risk-ml-conf" style="font-size:10px;color:var(--text-muted);margin-top:2px">ML confidence: —</div>
+        </div>
+        <div id="risk-score" class="risk-score" style="color:var(--success)">2</div>
+      </div>
+    </div>
+    <div class="section" style="padding-top:0">
+      <div class="section-title">Live Vitals</div>
+      <div class="vitals-grid">
+        <div class="vital-card" style="--vital-color:#EF4444">
+          <div class="vital-icon">❤️</div><div class="vital-label">Heart Rate</div>
+          <div><span class="vital-value" id="v-hr">78</span><span class="vital-unit"> bpm</span></div>
+          <div><span class="vital-status status-normal" id="vs-hr">Normal</span><span class="trend stable" id="vt-hr">→</span></div>
+        </div>
+        <div class="vital-card" style="--vital-color:#3B82F6">
+          <div class="vital-icon">💧</div><div class="vital-label">SpO₂</div>
+          <div><span class="vital-value" id="v-spo2">98</span><span class="vital-unit"> %</span></div>
+          <div><span class="vital-status status-normal" id="vs-spo2">Normal</span><span class="trend stable" id="vt-spo2">→</span></div>
+        </div>
+        <div class="vital-card" style="--vital-color:#F59E0B">
+          <div class="vital-icon">🌡️</div><div class="vital-label">Temperature</div>
+          <div><span class="vital-value" id="v-temp">36.8</span><span class="vital-unit"> °C</span></div>
+          <div><span class="vital-status status-normal" id="vs-temp">Normal</span><span class="trend stable" id="vt-temp">→</span></div>
+        </div>
+        <div class="vital-card" style="--vital-color:#8B5CF6">
+          <div class="vital-icon">🧠</div><div class="vital-label">Stress</div>
+          <div><span class="vital-value" id="v-stress">24</span><span class="vital-unit"> /100</span></div>
+          <div><span class="vital-status status-normal" id="vs-stress">Low</span><span class="trend stable" id="vt-stress">→</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Battery row (BLE only) -->
+    <div id="battery-section" style="display:none" class="section" style="padding-top:0">
+      <div class="card" style="padding:12px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;color:var(--text-secondary)">🔋 ESP32 Battery</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="bat-bar"><div id="bat-fill" class="bat-fill" style="width:85%;background:var(--success)"></div></div>
+            <span id="bat-pct" style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500">85%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- HR chart -->
+    <div class="section" style="padding-top:0">
+      <div class="card">
+        <div class="card-title">Heart Rate Trend</div>
+        <div class="mini-chart" id="hr-chart"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px">
+          <span style="font-size:10px;color:var(--text-muted)">Oldest</span>
+          <span style="font-size:10px;color:var(--text-muted)">Latest</span>
+        </div>
+      </div>
+    </div>
+    <!-- Quick actions → sub-screens -->
+    <div class="section" style="padding-top:0">
+      <div class="section-title">Quick Access</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="card" onclick="navigate('screen-mother-nutrition')" style="cursor:pointer;text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">🥗</div>
+          <div style="font-size:13px;font-weight:600">Nutrition</div>
+          <div id="nutr-quick-label" style="font-size:11px;color:var(--text-muted);margin-top:2px">0 / 100</div>
+        </div>
+        <div class="card" onclick="navigate('screen-mother-alerts')" style="cursor:pointer;text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">🔔</div>
+          <div style="font-size:13px;font-weight:600">Alerts</div>
+          <div id="alert-quick-label" style="font-size:11px;color:var(--text-muted);margin-top:2px">0 unread</div>
+        </div>
+        <div class="card" onclick="navigate('screen-mother-history')" style="cursor:pointer;text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">📅</div>
+          <div style="font-size:13px;font-weight:600">History</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Vitals log</div>
+        </div>
+        <div class="card" onclick="navigate('screen-mother-settings')" style="cursor:pointer;text-align:center;padding:16px">
+          <div style="font-size:28px;margin-bottom:6px">⚙️</div>
+          <div style="font-size:13px;font-weight:600">Settings</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">BLE &amp; Profile</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- BOTTOM NAV — MOTHER -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="navigate('screen-mother-vitals')"><div class="nav-icon">📊</div><div class="nav-label">Vitals</div></div>
+    <div class="nav-item" id="nav-m-alerts" onclick="navigate('screen-mother-alerts')"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-history')"><div class="nav-icon">📅</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MOTHER — ALERTS  (sub-screen, back → vitals)
+══════════════════════════════════════════════════ -->
+<div id="screen-mother-alerts" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Alerts &amp; Reminders</div><div class="hdr-sub" id="notif-count-label">0 unread</div></div>
+  </div>
+  <div class="scroll-area"><div id="notifications-list" style="padding-bottom:8px"></div></div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-mother-vitals')"><div class="nav-icon">📊</div><div class="nav-label">Vitals</div></div>
+    <div class="nav-item active" id="nav-m-alerts2" onclick="navigate('screen-mother-alerts')"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-history')"><div class="nav-icon">📅</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MOTHER — NUTRITION  (BioNutriSense)
+══════════════════════════════════════════════════ -->
+<div id="screen-mother-nutrition" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">BioNutriSense</div><div class="hdr-sub" id="nutr-hdr-sub">WHO–ICMR personalised recommendations</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+
+      <!-- Trimester + Region banner -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div id="trimester-badge" style="flex:1;background:var(--accent-light);border-radius:var(--rs);padding:10px 14px;text-align:center">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--accent)">Trimester</div>
+          <div id="trimester-label" style="font-size:16px;font-weight:600;color:var(--accent);margin-top:2px">2nd</div>
+          <div id="trimester-focus" style="font-size:10px;color:var(--text-muted);margin-top:1px">Protein · Calcium</div>
+        </div>
+        <div id="region-badge" style="flex:1;background:var(--success-light);border-radius:var(--rs);padding:10px 14px;text-align:center;cursor:pointer" onclick="navigate('screen-mother-settings')">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--success)">Region</div>
+          <div id="region-label" style="font-size:15px;font-weight:600;color:var(--success);margin-top:2px">Tamil Nadu</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:1px">Tap to change</div>
+        </div>
+      </div>
+
+      <!-- Intake checkboxes -->
+      <div class="card">
+        <div class="card-title">Today's Intake</div>
+        <div id="nutrition-reminder" style="display:none;background:var(--warning-light);border:1px solid #FCD34D;border-radius:var(--rx);padding:10px 12px;margin-bottom:10px;display:none">
+          <div style="display:flex;gap:8px;align-items:center"><span>🔔</span><span style="font-size:12px;font-weight:600;color:#92400E">Log your nutrition today</span></div>
+        </div>
+        <div onclick="toggleNutrition('iron')" class="checkbox-item" id="cb-row-iron"><div class="checkbox-box" id="cb-iron-box"></div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px">🥬 Iron-rich Foods</span><span id="cb-tag-iron" style="display:none;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px"></span></div><div style="font-size:11px;color:var(--text-muted)" id="iron-hint">Spinach, lentils, lean meat</div></div></div>
+        <div onclick="toggleNutrition('protein')" class="checkbox-item" id="cb-row-protein"><div class="checkbox-box" id="cb-protein-box"></div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px">🥚 Protein</span><span id="cb-tag-protein" style="display:none;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px"></span></div><div style="font-size:11px;color:var(--text-muted)" id="protein-hint">Eggs, dairy, legumes — 70g/day</div></div></div>
+        <div onclick="toggleNutrition('hydration')" class="checkbox-item" id="cb-row-hydration"><div class="checkbox-box" id="cb-hydration-box"></div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px">💧 Hydration</span><span id="cb-tag-hydration" style="display:none;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px"></span></div><div style="font-size:11px;color:var(--text-muted)">2.5–3 litres daily</div></div></div>
+        <div onclick="toggleNutrition('folic')" class="checkbox-item" id="cb-row-folic"><div class="checkbox-box" id="cb-folic-box"></div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px">💊 Folic Acid / Supplements</span><span id="cb-tag-folic" style="display:none;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px"></span></div><div style="font-size:11px;color:var(--text-muted)">Daily prenatal vitamins</div></div></div>
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:600">Nutrition Score</span>
+            <span id="nutrition-score-label" style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--accent)">0 / 100</span>
+          </div>
+          <div class="score-bar"><div id="nutrition-fill" class="score-fill" style="width:0%;background:var(--accent)"></div></div>
+        </div>
+      </div>
+
+      <!-- BioNutriSense recommendations -->
+      <div style="margin-top:12px">
+        <div class="section-title" style="margin-bottom:8px">🧬 Personalised Recommendations</div>
+        <div id="nutr-recs-container"></div>
+      </div>
+
+      <!-- Why it matters -->
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">About BioNutriSense</div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">Recommendations are generated using WHO–ICMR guidelines, your trimester stage, today's intake, biosignals from your wearable, and locally available foods from your region. All suggestions use foods that are affordable and widely available.</p>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-mother-vitals')"><div class="nav-icon">📊</div><div class="nav-label">Vitals</div></div>
+    <div class="nav-item" id="nav-m-alerts3" onclick="navigate('screen-mother-alerts')"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item active" onclick="navigate('screen-mother-nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-history')"><div class="nav-icon">📅</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MOTHER — HISTORY  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-mother-history" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Vitals History</div><div class="hdr-sub">Last 24 readings</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+      <div class="card"><div class="card-title">Reading Log</div><div id="history-table"></div></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-mother-vitals')"><div class="nav-icon">📊</div><div class="nav-label">Vitals</div></div>
+    <div class="nav-item" id="nav-m-alerts4" onclick="navigate('screen-mother-alerts')"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
+    <div class="nav-item active" onclick="navigate('screen-mother-history')"><div class="nav-icon">📅</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MOTHER — SETTINGS  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-mother-settings" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Settings</div><div class="hdr-sub">Profile &amp; Device</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+      <div class="card">
+        <div class="card-title">My Profile</div>
+        <div class="info-row"><label>Name</label><span id="s-name">—</span></div>
+        <div class="info-row"><label>Patient ID</label><span id="s-pid">—</span></div>
+        <div class="info-row"><label>Weeks Pregnant</label><span id="s-weeks">—</span></div>
+        <div class="info-row"><label>Trimester</label><span id="s-trimester">—</span></div>
+        <div class="info-row"><label>Assigned Worker</label><span id="s-worker">—</span></div>
+        <div class="info-row" style="align-items:flex-start;flex-direction:column;gap:6px">
+          <label>📍 Region (for food recs)</label>
+          <select id="s-region" class="input-field" onchange="changeRegion(this.value)" style="margin-top:4px">
+            <option value="tamil_nadu">Tamil Nadu</option>
+            <option value="kerala">Kerala</option>
+            <option value="karnataka">Karnataka</option>
+            <option value="andhra_pradesh">Andhra Pradesh</option>
+            <option value="maharashtra">Maharashtra</option>
+            <option value="gujarat">Gujarat</option>
+            <option value="rajasthan">Rajasthan</option>
+            <option value="punjab">Punjab</option>
+            <option value="west_bengal">West Bengal</option>
+            <option value="odisha">Odisha</option>
+            <option value="other">Other / General</option>
+          </select>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Bluetooth / ESP32</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div class="sig-bars"><div class="sig-bar" id="sb1" style="height:3px"></div><div class="sig-bar" id="sb2" style="height:6px"></div><div class="sig-bar" id="sb3" style="height:9px"></div><div class="sig-bar" id="sb4" style="height:12px"></div></div>
+          <div style="flex:1">
+            <div id="ble-dev-name" style="font-size:13px;font-weight:600">No Device</div>
+            <div id="ble-status-text" style="font-size:11px;color:var(--text-muted)">Not connected — using mock data</div>
+          </div>
+          <div id="bat-chip" style="display:none">
+            <div class="bat-bar"><div id="bat-fill2" class="bat-fill" style="width:85%;background:var(--success)"></div></div>
+            <span id="bat-pct2" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)">85%</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="btn-connect" class="btn btn-primary btn-sm" onclick="BLE.connect()" style="flex:1">📡 Connect ESP32</button>
+          <button id="btn-disconnect" class="btn btn-outline btn-sm" onclick="BLE.disconnect()" style="display:none">Forget Device</button>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--surface-2);border-radius:var(--rx);font-size:11px;color:var(--text-muted);line-height:1.6">
+          <strong>Requires:</strong> Chrome on Android · Bluetooth ON · ESP32 powered · Location permission
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Data Source</div>
+        <div class="info-row"><label>Mode</label><span id="ds-mode-tag" class="tag tag-yellow">Mock Data</span></div>
+        <div class="info-row"><label>Last Packet</label><span id="s-last-pkt" style="color:var(--text-muted)">—</span></div>
+        <div class="info-row"><label>Packets Received</label><span id="s-pkt-count" style="font-family:'DM Mono',monospace">0</span></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Account</div>
+        <button class="btn btn-outline btn-full" style="margin-bottom:10px" onclick="resetApp()">
+          ↩ Switch Role
+        </button>
+        <button class="btn btn-full" style="background:#FEF2F2;color:var(--danger);border:1.5px solid #FCA5A5" onclick="confirmSwitchUser()">
+          🔄 Switch User / Log Out
+        </button>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">
+          <strong>Switch Role</strong> keeps your data and goes back to role selection.<br>
+          <strong>Switch User</strong> clears all saved data and lets a new patient register.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-mother-vitals')"><div class="nav-icon">📊</div><div class="nav-label">Vitals</div></div>
+    <div class="nav-item" id="nav-m-alerts5" onclick="navigate('screen-mother-alerts')"><div class="nav-icon">🔔</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-nutrition')"><div class="nav-icon">🥗</div><div class="nav-label">Nutrition</div></div>
+    <div class="nav-item" onclick="navigate('screen-mother-history')"><div class="nav-icon">📅</div><div class="nav-label">History</div></div>
+    <div class="nav-item active" onclick="navigate('screen-mother-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     WORKER — PATIENTS  (home, has nav)
+══════════════════════════════════════════════════ -->
+<div id="screen-worker-patients" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="resetApp()" title="Back to role select"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">My Patients</div><div class="hdr-sub">Nurse Anjali Rao · HW01</div></div>
+    <div class="hdr-right"><div id="worker-alert-badge" class="hdr-badge" style="display:none">0</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section"><div class="section-title">Active Monitoring</div><div id="patient-list"></div></div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="navigate('screen-worker-patients')"><div class="nav-icon">👥</div><div class="nav-label">Patients</div></div>
+    <div class="nav-item" id="nav-w-alerts" onclick="navigate('screen-worker-alerts')"><div class="nav-icon">🚨</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-worker-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     WORKER — ALERTS  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-worker-alerts" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Alert Queue</div><div class="hdr-sub" id="worker-alert-count">0 pending</div></div>
+  </div>
+  <div class="scroll-area"><div class="section"><div id="worker-alert-list"></div></div></div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-worker-patients')"><div class="nav-icon">👥</div><div class="nav-label">Patients</div></div>
+    <div class="nav-item active" id="nav-w-alerts2" onclick="navigate('screen-worker-alerts')"><div class="nav-icon">🚨</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item" onclick="navigate('screen-worker-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     WORKER — SETTINGS  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-worker-settings" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Settings</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+      <div class="card">
+        <div class="card-title">Worker Info</div>
+        <div class="info-row"><label>Name</label><span>Nurse Anjali Rao</span></div>
+        <div class="info-row"><label>Worker ID</label><span>HW01</span></div>
+        <div class="info-row"><label>Patients Assigned</label><span>3</span></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <button class="btn btn-outline btn-sm" onclick="resetApp()">↩ Switch Role</button>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-worker-patients')"><div class="nav-icon">👥</div><div class="nav-label">Patients</div></div>
+    <div class="nav-item" id="nav-w-alerts3" onclick="navigate('screen-worker-alerts')"><div class="nav-icon">🚨</div><div class="nav-label">Alerts</div></div>
+    <div class="nav-item active" onclick="navigate('screen-worker-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DOCTOR — ESCALATIONS  (home, has nav)
+══════════════════════════════════════════════════ -->
+<div id="screen-doctor-escalations" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="resetApp()" title="Back to role select"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Critical Cases</div><div class="hdr-sub" id="doctor-count-label">0 awaiting review</div></div>
+  </div>
+  <div class="scroll-area"><div class="section"><div id="doctor-alert-list"></div></div></div>
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="navigate('screen-doctor-escalations')"><div class="nav-icon">🚨</div><div class="nav-label">Escalated</div></div>
+    <div class="nav-item" onclick="navigate('screen-doctor-history')"><div class="nav-icon">📋</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-doctor-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DOCTOR — HISTORY  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-doctor-history" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Case History</div></div>
+  </div>
+  <div class="scroll-area"><div class="section"><div id="doctor-history-list"></div></div></div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-doctor-escalations')"><div class="nav-icon">🚨</div><div class="nav-label">Escalated</div></div>
+    <div class="nav-item active" onclick="navigate('screen-doctor-history')"><div class="nav-icon">📋</div><div class="nav-label">History</div></div>
+    <div class="nav-item" onclick="navigate('screen-doctor-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     DOCTOR — SETTINGS  (sub-screen)
+══════════════════════════════════════════════════ -->
+<div id="screen-doctor-settings" class="screen has-nav">
+  <div class="hdr">
+    <button class="hdr-back-btn" onclick="navBack()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 15L7.5 10L12.5 5" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="hdr-titles"><div class="hdr-title">Settings</div></div>
+  </div>
+  <div class="scroll-area">
+    <div class="section">
+      <div class="card">
+        <div class="card-title">Doctor Info</div>
+        <div class="info-row"><label>Name</label><span>Dr. Sanjana Mehta</span></div>
+        <div class="info-row"><label>Specialty</label><span>Obstetrics &amp; Gynecology</span></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <button class="btn btn-outline btn-sm" onclick="resetApp()">↩ Switch Role</button>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navigate('screen-doctor-escalations')"><div class="nav-icon">🚨</div><div class="nav-label">Escalated</div></div>
+    <div class="nav-item" onclick="navigate('screen-doctor-history')"><div class="nav-icon">📋</div><div class="nav-label">History</div></div>
+    <div class="nav-item active" onclick="navigate('screen-doctor-settings')"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   NAVIGATION SYSTEM
+   - navStack  : history of screen IDs
+   - navigate() : push new screen
+   - navBack()  : pop to previous screen
+   Browser back button also triggers navBack()
+═══════════════════════════════════════════════════════════════ */
+const navStack = ['screen-splash'];
+let _navAnimDir = 'forward'; // used by animation
+
+function navigate(screenId, opts={}) {
+  const current = navStack[navStack.length - 1];
+  if (current === screenId) return; // already there
+
+  // Decide animation direction
+  _navAnimDir = opts.back ? 'back' : 'forward';
+
+  // Run the render hook before showing the screen
+  _onBeforeShow(screenId);
+
+  // Hide current, show next
+  const prev = document.getElementById(current);
+  const next = document.getElementById(screenId);
+  if (prev) { prev.classList.remove('active'); prev.style.display = 'none'; }
+  if (next) {
+    next.style.display = 'flex';
+    // Trigger reflow so animation fires
+    void next.offsetWidth;
+    next.classList.add('active');
+    next.style.animation = _navAnimDir === 'back' ? 'slideBack .22s ease' : 'slideIn .22s ease';
+  }
+
+  if (!opts.back) navStack.push(screenId);
+  _syncNavDots();
+}
+
+function navBack() {
+  if (navStack.length <= 1) return;
+
+  // Hide current screen
+  const currentId = navStack[navStack.length - 1];
+  const current = document.getElementById(currentId);
+  if (current) { current.classList.remove('active'); current.style.display = 'none'; }
+
+  // Pop it off the stack
+  navStack.pop();
+
+  // Show the previous screen with a slide-back animation
+  const prevId = navStack[navStack.length - 1];
+  _onBeforeShow(prevId);
+  const prev = document.getElementById(prevId);
+  if (prev) {
+    prev.style.display = 'flex';
+    void prev.offsetWidth; // force reflow so animation fires
+    prev.classList.add('active');
+    prev.style.animation = 'slideBack .22s ease';
+  }
+  _syncNavDots();
+}
+
+// Render hooks — called just before a screen is shown
+function _onBeforeShow(id) {
+  if (id === 'screen-mother-alerts')     { renderNotifs(); }
+  if (id === 'screen-mother-history')    { renderHistory(); }
+  if (id === 'screen-mother-nutrition')  { _nutrReminder(); }
+  if (id === 'screen-worker-patients')   { renderPatientList(); }
+  if (id === 'screen-worker-alerts')     { renderWorkerAlerts(); }
+  if (id === 'screen-doctor-escalations'){ renderDoctorAlerts(); }
+  if (id === 'screen-doctor-history')    { renderDoctorHistory(); }
+}
+
+function showScreen(id) {
+  // Low-level: hide all, show one — used for initial entry points
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  const s = document.getElementById(id);
+  if (s) { s.style.display = 'flex'; s.classList.add('active'); }
+  // Reset nav stack to this screen
+  navStack.length = 0;
+  navStack.push(id);
+  _syncNavDots();
+}
+
+// Sync unread dot on all copies of the alerts nav item
+function _syncNavDots() {
+  const unread = DB.notifs.filter(n => n.patientId === APP.pid && !n.read).length;
+  ['nav-m-alerts','nav-m-alerts2','nav-m-alerts3','nav-m-alerts4','nav-m-alerts5'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let dot = el.querySelector('.nav-dot');
+    if (unread > 0 && !dot) { dot = document.createElement('div'); dot.className = 'nav-dot'; el.appendChild(dot); }
+    else if (unread === 0 && dot) dot.remove();
+  });
+  const pnd = DB.alerts.filter(a => ['pending','acknowledged'].includes(a.status)).length;
+  ['nav-w-alerts','nav-w-alerts2','nav-w-alerts3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let dot = el.querySelector('.nav-dot');
+    if (pnd > 0 && !dot) { dot = document.createElement('div'); dot.className = 'nav-dot'; el.appendChild(dot); }
+    else if (pnd === 0 && dot) dot.remove();
+  });
+}
+
+// Physical back button support
+window.addEventListener('popstate', () => { if (navStack.length > 1) navBack(); });
+
+/* ═══════════════════════════════════════════════════════════════
+   BLE  (unchanged from previous version)
+═══════════════════════════════════════════════════════════════ */
+const DEVICE_NAME = 'NeuraCare-ESP32';
+const SVC_UUID    = '12345678-1234-1234-1234-123456789abc';
+const VITALS_UUID = 'abcd1234-ab12-ab12-ab12-abcdef123456';
+const BATTERY_SVC = 'battery_service';
+const BATTERY_CHAR= '00002a19-0000-1000-8000-00805f9b34fb';
+
+const BLE = (() => {
+  let _dev=null,_srv=null,_vChar=null,_bChar=null;
+  let _reconnTimer=null,_reconnAttempts=0,_mockTimer=null;
+  let _autoReconnTimer=null;
+  const MAX_RECONN=5;
+  const st={mode:'mock',devName:null,packets:0,lastPkt:null,battery:null};
+
+  // ── Was device previously paired? ────────────────────────────
+  function _wasPaired()  { return !!localStorage.getItem('nc_ble_paired'); }
+  function _savePaired() { localStorage.setItem('nc_ble_paired','1'); localStorage.setItem('nc_ble_name', st.devName||DEVICE_NAME); }
+  function _clearPaired(){ localStorage.removeItem('nc_ble_paired'); localStorage.removeItem('nc_ble_name'); }
+  function savedDeviceName() { return localStorage.getItem('nc_ble_name') || DEVICE_NAME; }
+
+  // ── Full connect (shows browser device picker) ───────────────
+  async function connect(){
+    if(!navigator.bluetooth){
+      toast('Not Supported','Web Bluetooth needs Chrome on Android or desktop.','warning','📡');
+      return;
+    }
+    _setMode('connecting');
+    toast('Scanning…','Looking for '+DEVICE_NAME,'info','📡');
+    try{
+      _dev=await navigator.bluetooth.requestDevice({
+        filters:[{name:DEVICE_NAME}],
+        optionalServices:[SVC_UUID,BATTERY_SVC]
+      });
+      await _connectToDevice();
+    }catch(err){
+      if(err.name==='NotFoundError') toast('Not Found','ESP32 not nearby. Mock mode active.','warning','📡');
+      else if(err.name==='SecurityError') toast('Permission Denied','Enable Bluetooth in settings.','danger','🔒');
+      else if(err.name==='NotAllowedError') toast('Cancelled','Bluetooth picker was cancelled.','info','📡');
+      else toast('Failed',err.message,'warning','📡');
+      _setMode('mock');
+    }
+  }
+
+  // ── Silent reconnect to previously paired device ─────────────
+  // Uses getDevices() — no picker shown, no user gesture needed
+  async function tryAutoReconnect(){
+    if(!navigator.bluetooth) return;
+    if(!_wasPaired()) return;
+    try{
+      // getDevices() returns previously permitted devices — no popup
+      const devices = await navigator.bluetooth.getDevices();
+      const saved   = devices.find(d => d.name === DEVICE_NAME);
+      if(!saved) {
+        // Device not in permitted list yet — show prompt instead
+        _showConnectPrompt();
+        return;
+      }
+      _dev = saved;
+      _dev.addEventListener('gattserverdisconnected', _onDisc);
+      _setMode('connecting');
+      await _connectToDevice();
+      // No toast — silent reconnect
+    } catch(_){
+      // Silent fail — just stay on mock
+      _setMode('mock');
+      _showConnectPrompt();
+    }
+  }
+
+  // ── Shared connection logic (used by both connect paths) ─────
+  async function _connectToDevice(){
+    _srv = await _dev.gatt.connect();
+    const svc  = await _srv.getPrimaryService(SVC_UUID);
+    _vChar     = await svc.getCharacteristic(VITALS_UUID);
+    await _vChar.startNotifications();
+    _vChar.addEventListener('characteristicvaluechanged', _onVitals);
+    // Battery (optional)
+    try{
+      const bs=await _srv.getPrimaryService(BATTERY_SVC);
+      _bChar=await bs.getCharacteristic(BATTERY_CHAR);
+      await _bChar.startNotifications();
+      _bChar.addEventListener('characteristicvaluechanged',_onBat);
+      _applyBat((await _bChar.readValue()).getUint8(0));
+    }catch(_){}
+    _reconnAttempts=0;
+    st.devName=_dev.name||DEVICE_NAME;
+    _savePaired(); // remember this device for next launch
+    _stopMock();
+    _setMode('connected');
+    _hideConnectPrompt();
+    toast('Connected!', st.devName+' linked successfully','success','📡');
+  }
+
+  // ── Manual disconnect ────────────────────────────────────────
+  async function disconnect(){
+    _clearReconn();
+    if(_dev&&_dev.gatt.connected) _dev.gatt.disconnect();
+    _dev=null;_srv=null;_vChar=null;_bChar=null;
+    _clearPaired(); // forget device — won't auto-reconnect next time
+    _setMode('mock');
+    _startMock();
+    toast('Disconnected','Device forgotten. Mock mode active.','info','📡');
+  }
+
+  // ── Show a non-blocking connect prompt on the vitals screen ──
+  function _showConnectPrompt(){
+    const banner = g('mock-banner');
+    if(!banner) return;
+    // Already showing the mock banner — enhance it with a stronger CTA
+    const btn = banner.querySelector('button');
+    if(btn){
+      btn.textContent = '📡 Connect ESP32';
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'white';
+      btn.style.border = 'none';
+    }
+  }
+  function _hideConnectPrompt(){
+    const banner = g('mock-banner');
+    if(banner) banner.style.display = 'none';
+  }
+
+  // ── Vitals packet handler ────────────────────────────────────
+  function _onVitals(e){
+    try{
+      const pkt=JSON.parse(new TextDecoder('utf-8').decode(e.target.value));
+      if(pkt.hr==null||pkt.spo2==null||pkt.temp==null)return;
+      const pid=APP.pid;
+      DB.vitals[pid]={hr:Math.round(clamp(pkt.hr,30,200)),spo2:Math.round(clamp(pkt.spo2,70,100)),temp:+clamp(pkt.temp,34,42).toFixed(1),stress:Math.round(clamp(pkt.stress||30,0,100))};
+      DB.hist[pid].push({ts:Date.now(),...DB.vitals[pid]});
+      if(DB.hist[pid].length>100)DB.hist[pid].shift();
+      st.packets++;st.lastPkt=Date.now();
+      if(pkt.bat!=null)_applyBat(Math.round(clamp(pkt.bat,0,100)));
+      checkAlerts(pid);
+      if(APP.role==='mother')refreshMother();
+      if(APP.role==='worker')refreshWorkerLive();
+      _updateSettingsStats();
+    }catch(ex){console.error('BLE parse:',ex);}
+  }
+
+  function _onBat(e){_applyBat(e.target.value.getUint8(0));}
+
+  function _applyBat(pct){
+    st.battery=pct;
+    g('bat-fill')&&(g('bat-fill').style.width=pct+'%',g('bat-fill').style.background=pct>40?'var(--success)':pct>20?'var(--warning)':'var(--danger)');
+    g('bat-fill2')&&(g('bat-fill2').style.width=pct+'%',g('bat-fill2').style.background=pct>40?'var(--success)':pct>20?'var(--warning)':'var(--danger)');
+    g('bat-pct')&&(g('bat-pct').textContent=pct+'%');
+    g('bat-pct2')&&(g('bat-pct2').textContent=pct+'%');
+    g('battery-section')&&(g('battery-section').style.display='');
+    g('bat-chip')&&(g('bat-chip').style.display='');
+    if(pct<20)toast('Low Battery','ESP32 at '+pct+'%. Charge soon.','warning','🔋');
+  }
+
+  // ── Disconnection / reconnect ────────────────────────────────
+  function _onDisc(){
+    _setMode('disconnected');
+    toast('Device Disconnected','ESP32 lost. Mock data active. Reconnecting…','danger','📡');
+    addNotif(APP.pid,'📡 Device Disconnected','BLE lost. Last known data shown. Reconnecting…','medium',null);
+    _startMock();
+    if(_reconnAttempts<MAX_RECONN&&_dev){
+      _reconnAttempts++;
+      const delay=Math.min(5000*_reconnAttempts,30000);
+      toast('Auto-reconnect','Attempt '+_reconnAttempts+'/'+MAX_RECONN+' in '+(delay/1000)+'s','info','🔄');
+      _reconnTimer=setTimeout(_doReconn,delay);
+    } else {
+      _setMode('mock');
+      toast('Reconnect Failed','Max attempts reached. Tap badge to retry.','warning','📡');
+    }
+  }
+
+  async function _doReconn(){
+    if(!_dev)return;
+    try{
+      _srv=await _dev.gatt.connect();
+      const svc=await _srv.getPrimaryService(SVC_UUID);
+      _vChar=await svc.getCharacteristic(VITALS_UUID);
+      await _vChar.startNotifications();
+      _vChar.addEventListener('characteristicvaluechanged',_onVitals);
+      _reconnAttempts=0;
+      _stopMock();
+      _setMode('connected');
+      toast('Reconnected!','ESP32 link restored.','success','📡');
+    } catch(_){ _onDisc(); }
+  }
+
+  function _clearReconn(){ if(_reconnTimer){clearTimeout(_reconnTimer);_reconnTimer=null;} }
+
+  // ── Mock data engine ─────────────────────────────────────────
+  function startMock(){
+    if(_mockTimer)return;
+    _mockTimer=setInterval(()=>{
+      Object.keys(DB.vitals).forEach(pid=>{
+        const v=DB.vitals[pid];
+        DB.vitals[pid]={
+          hr:    Math.round(clamp(v.hr    +rnd(6,3),   45,140)),
+          spo2:  Math.round(clamp(v.spo2  +rnd(2,1),   88,100)),
+          temp:  +clamp(v.temp  +rnd(.2,.1), 35.5,40).toFixed(1),
+          stress:Math.round(clamp(v.stress+rnd(8,4),   0, 100)),
+        };
+        DB.hist[pid].push({ts:Date.now(),...DB.vitals[pid]});
+        if(DB.hist[pid].length>100)DB.hist[pid].shift();
+        checkAlerts(pid);
+      });
+      if(APP.role==='mother')refreshMother();
+      if(APP.role==='worker')refreshWorkerLive();
+    },4000);
+  }
+  function _stopMock(){ if(_mockTimer){clearInterval(_mockTimer);_mockTimer=null;} }
+  function _startMock(){ if(!_mockTimer)startMock(); }
+
+  // ── UI state sync ────────────────────────────────────────────
+  function _setMode(mode){
+    st.mode=mode;
+    const btn=g('ble-header-btn'),dot=g('ble-dot-h'),lbl=g('ble-label-h');
+    const mock=g('mock-banner'),conn=g('btn-connect'),disc=g('btn-disconnect');
+    const devN=g('ble-dev-name'),stTxt=g('ble-status-text'),dsTag=g('ds-mode-tag');
+    const sbs=[g('sb1'),g('sb2'),g('sb3'),g('sb4')];
+    const paired = _wasPaired();
+    const savedName = savedDeviceName();
+    const C={
+      mock:{
+        cls:'mode-mock', lbl: paired ? '📡 Tap to Connect' : 'Mock',
+        dotCls:'ble-dot', mockShow:true, connShow:true, discShow:false, fills:0,
+        devText: paired ? savedName+' (last used)' : 'No Device',
+        stText: paired ? 'Previously paired — tap badge to reconnect' : 'Not connected — mock data',
+        dsTag:'tag tag-yellow', dsText:'Mock Data'
+      },
+      connecting:{cls:'mode-connecting',lbl:'Connecting…',dotCls:'ble-dot spin',mockShow:false,connShow:false,discShow:false,fills:0,devText:'Connecting…',stText:'Connecting to '+DEVICE_NAME+'…',dsTag:'tag tag-blue',dsText:'Connecting'},
+      connected:{cls:'mode-connected',lbl:'ESP32 ✓',dotCls:'ble-dot blink',mockShow:false,connShow:false,discShow:true,fills:4,devText:st.devName||DEVICE_NAME,stText:'Live data from ESP32',dsTag:'tag tag-green',dsText:'Live ESP32'},
+      disconnected:{cls:'mode-disconnected',lbl:'Offline',dotCls:'ble-dot',mockShow:true,connShow:true,discShow:false,fills:1,devText:st.devName||'Disconnected',stText:'Lost — auto-reconnecting…',dsTag:'tag tag-yellow',dsText:'Last Known'},
+    };
+    const c=C[mode]||C.mock;
+    if(btn)btn.className='ble-badge '+c.cls;
+    if(dot)dot.className=c.dotCls;
+    if(lbl)lbl.textContent=c.lbl;
+    if(mock)mock.style.display=c.mockShow?'flex':'none';
+    if(conn)conn.style.display=c.connShow?'':'none';
+    if(disc)disc.style.display=c.discShow?'':'none';
+    if(devN)devN.textContent=c.devText;
+    if(stTxt)stTxt.textContent=c.stText;
+    if(dsTag){dsTag.className=c.dsTag;dsTag.textContent=c.dsText;}
+    sbs.forEach((b,i)=>{if(b)b.className='sig-bar'+(i<c.fills?' on':'');});
+    if(mode!=='connected'){
+      g('battery-section')&&(g('battery-section').style.display='none');
+      g('bat-chip')&&(g('bat-chip').style.display='none');
+    }
+  }
+
+  function _updateSettingsStats(){
+    g('s-last-pkt')&&st.lastPkt&&(g('s-last-pkt').textContent=ago(st.lastPkt));
+    g('s-pkt-count')&&(g('s-pkt-count').textContent=st.packets);
+  }
+
+  return { connect, disconnect, startMock, tryAutoReconnect, state:st, wasPaired:_wasPaired };
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA MODELS
+═══════════════════════════════════════════════════════════════ */
+const DB={
+  patients:[
+    {id:'P001',name:'Priya Sharma', age:28,weeks:24,worker:'HW01'},
+    {id:'P002',name:'Lakshmi Devi',age:32,weeks:36,worker:'HW01'},
+    {id:'P003',name:'Fatima Noor', age:25,weeks:18,worker:'HW01'},
+  ],
+  vitals:{P001:{hr:78,spo2:98,temp:36.8,stress:24},P002:{hr:95,spo2:95,temp:37.4,stress:62},P003:{hr:72,spo2:99,temp:36.5,stress:18}},
+  hist:{P001:[],P002:[],P003:[]},
+  alerts:[],notifs:[],nextAid:1,nextPid:4,
+};
+// seed 24h history
+(()=>{const now=Date.now();['P001','P002','P003'].forEach(pid=>{for(let i=23;i>=0;i--){const b=DB.vitals[pid];DB.hist[pid].push({ts:now-i*5*60000,hr:b.hr+~~(Math.random()*10-5),spo2:b.spo2+~~(Math.random()*3-1),temp:+(b.temp+(Math.random()*.4-.2)).toFixed(1),stress:b.stress+~~(Math.random()*10-5)});}});})();
+
+const APP={role:null,pid:'P001',nutr:{iron:false,protein:false,hydration:false,folic:false}};
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════════ */
+const g=id=>document.getElementById(id);
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const rnd=(r,o)=>Math.random()*r-o;
+function ago(ts){const d=Date.now()-ts;if(d<60000)return 'just now';if(d<3600000)return ~~(d/60000)+'m ago';if(d<86400000)return ~~(d/3600000)+'h ago';return ~~(d/86400000)+'d ago';}
+
+/* ═══════════════════════════════════════════════════════════════
+   REAL ML ENGINE — NeuraCare 2.0 v2.1
+   Distilled from GradientBoostingClassifier trained on 5,000
+   synthetic maternal health samples.
+   GBT Accuracy: 0.998 | F1: 0.998 | AUC: 1.000
+   Distilled LR fidelity: 0.999
+   Inference: ~0.1ms on-device, no internet needed.
+═══════════════════════════════════════════════════════════════ */
+const ML = (() => {
+  // ── Trained weights (exported from neuracare_weights.json) ──
+  const SCALER_MEAN = [86.842372,95.815511,37.277621,39.1286,61.916571,26.03525,0.681333,2.463414,0.209074,0.391286,1.556622,0.33088,0.380834,0.525];
+  const SCALER_STD  = [17.806307,3.128672,0.711872,24.908696,26.266804,9.741971,0.667452,2.849638,0.405239,0.249087,2.230396,0.783945,0.262668,0.499375];
+  const LR_COEFS    = [
+    [-0.623801,1.148698,-1.592214,-1.924916,1.808811,-0.129023,-0.604833,-1.233207,-0.644187,-1.924916,-1.192421,-0.28702,-1.808811,-0.426573],  // LOW
+    [-0.172543,-0.763343,0.886154,-0.011993,0.134454,-0.155284,0.266337,0.78519,-0.221317,-0.011993,-0.541459,-0.533852,-0.134454,-0.386525],    // MEDIUM
+    [0.796345,-0.385355,0.70606,1.936909,-1.943265,0.284307,0.338496,0.448017,0.865503,1.936909,1.73388,0.820872,1.943265,0.813098]              // HIGH
+  ];
+  const LR_INTERCEPT = [4.622867, 5.211673, -9.83454];
+
+  function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+  // ── Feature engineering (mirrors Python engineer() function) ─
+  function buildFeatures(hr, spo2, temp, stress, ns, weeks) {
+    const hr_dev   = Math.abs(hr - 80) / 20;
+    const spo2_def = Math.max(0, 98 - spo2);
+    const fever    = Math.max(0, temp - 37.5);
+    const str_norm = stress / 100;
+    const hyp_str  = spo2_def * str_norm;
+    const fev_hr   = fever * hr_dev;
+    const nutr_rf  = (100 - ns) / 100;
+    const tri      = weeks <= 12 ? 1 : weeks <= 26 ? 2 : 3;
+    const third    = tri === 3 ? 1 : 0;
+    return [hr, spo2, temp, stress, ns, weeks,
+            hr_dev, spo2_def, fever, str_norm,
+            hyp_str, fev_hr, nutr_rf, third];
+  }
+
+  // ── Inference: returns {label, probs, confidence} ───────────
+  function predict(hr, spo2, temp, stress, ns, weeks) {
+    const raw    = buildFeatures(hr, spo2, temp, stress, ns, weeks);
+    const scaled = raw.map((v, i) => (v - SCALER_MEAN[i]) / SCALER_STD[i]);
+
+    // Compute raw logits for each class
+    const logits = LR_COEFS.map((coefs, c) =>
+      LR_INTERCEPT[c] + coefs.reduce((sum, w, i) => sum + w * scaled[i], 0)
+    );
+
+    // Softmax normalisation
+    const exps  = logits.map(z => Math.exp(Math.min(z, 20))); // clamp to avoid Inf
+    const total = exps.reduce((a, b) => a + b, 0);
+    const probs = exps.map(e => e / total);
+
+    const classIdx  = probs.indexOf(Math.max(...probs));
+    const labels    = ['low', 'medium', 'high'];
+    const confidence= probs[classIdx];
+
+    return { label: labels[classIdx], probs, confidence, classIdx };
+  }
+
+  return { predict };
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   HYBRID RISK ENGINE  — Rule-based (30%) + Real ML (70%)
+═══════════════════════════════════════════════════════════════ */
+function scoreV(k,v){if(k==='hr'){if(v>=60&&v<=100)return 0;if((v>=50&&v<60)||(v>100&&v<=115))return 2;return 5;}if(k==='spo2'){if(v>=95)return 0;if(v>=92)return 3;return 6;}if(k==='temp'){if(v>=36&&v<37.5)return 0;if(v>=37.5&&v<38)return 2;return 5;}if(k==='stress'){if(v<40)return 0;if(v<65)return 1;return 3;}return 0;}
+function nutrScore(n){return Math.round(Object.values(n).filter(Boolean).length/4*100);}
+
+function riskOf(v, n) {
+  const ns  = nutrScore(n || {iron:false,protein:false,hydration:false,folic:false});
+  const pen = ns>=75?0:ns>=50?1:ns>=25?2:3;
+  const ruleScore = scoreV('hr',v.hr)+scoreV('spo2',v.spo2)+scoreV('temp',v.temp)+scoreV('stress',v.stress)+pen;
+
+  // Get patient weeks for trimester feature
+  const p = DB.patients.find(x => x.id === APP.pid);
+  const weeks = p ? (p.weeks||24) : 24;
+
+  // Real ML inference
+  const ml = ML.predict(v.hr, v.spo2, v.temp, v.stress, ns, weeks);
+
+  // Blend: 70% ML probability + 30% rule-based one-hot
+  const ruleOneHot = [0,0,0];
+  const ruleClass  = ruleScore >= 8 ? 2 : ruleScore >= 4 ? 1 : 0;
+  ruleOneHot[ruleClass] = 1;
+
+  const blended = ml.probs.map((p,i) => p*0.7 + ruleOneHot[i]*0.3);
+  const total   = blended.reduce((a,b)=>a+b,0);
+  const norm    = blended.map(p=>p/total);
+  let   cls     = norm.indexOf(Math.max(...norm));
+
+  // Safety override: strong rule signal always wins
+  if (ruleScore >= 12) cls = 2;
+
+  const score   = Math.round(norm[cls] * 10 + ruleScore * 0.3);
+  const labels  = [{lvl:'low',lbl:'Low Risk',clr:'var(--success)'},{lvl:'medium',lbl:'Moderate Risk',clr:'var(--warning)'},{lvl:'high',lbl:'HIGH RISK',clr:'var(--danger)'}];
+  return {...labels[cls], score, mlConf: Math.round(ml.confidence*100), ruleScore};
+}
+
+function trend(hist,key){if(hist.length<4)return 'stable';const r=hist.slice(-4).map(h=>h[key]);const d=r[3]-r[0];if(Math.abs(d)<2)return 'stable';return d>0?'up':'down';}
+
+/* ═══════════════════════════════════════════════════════════════
+   ALERT SYSTEM
+═══════════════════════════════════════════════════════════════ */
+const _lastAt={};
+function checkAlerts(pid){
+  const v=DB.vitals[pid],now=Date.now(),cd=60000;
+  if(!_lastAt[pid])_lastAt[pid]={};
+  const ok=k=>!_lastAt[pid][k]||(now-_lastAt[pid][k])>cd;
+  if(v.hr>110&&ok('hr')){_lastAt[pid].hr=now;addAlert(pid,'⚠️ High Heart Rate','HR '+v.hr+' bpm — above safe threshold.','high',{...v});}
+  else if(v.hr>100&&ok('hrm')){_lastAt[pid].hrm=now;addAlert(pid,'⚠️ Elevated Heart Rate','HR '+v.hr+' bpm. Monitor closely.','medium',{...v});}
+  if(v.spo2<92&&ok('s')){_lastAt[pid].s=now;addAlert(pid,'🔴 Critical SpO₂','SpO₂ '+v.spo2+'%. Seek attention.','high',{...v});}
+  else if(v.spo2<95&&ok('sm')){_lastAt[pid].sm=now;addAlert(pid,'⚠️ Low SpO₂','SpO₂ '+v.spo2+'%. Below normal.','medium',{...v});}
+  if(v.temp>=38&&ok('t')){_lastAt[pid].t=now;addAlert(pid,'🌡️ Fever Detected','Temp '+v.temp+'°C.','high',{...v});}
+  else if(v.temp>=37.5&&ok('tm')){_lastAt[pid].tm=now;addAlert(pid,'🌡️ Elevated Temp','Temp '+v.temp+'°C near threshold.','medium',{...v});}
+  if(v.stress>=70&&ok('str')){_lastAt[pid].str=now;addAlert(pid,'🧠 High Stress','Stress '+v.stress+'/100.','medium',{...v});}
+}
+function addAlert(pid,title,msg,pri,v){
+  const a={id:'A'+String(DB.nextAid++).padStart(3,'0'),patientId:pid,title,message:msg,priority:pri,vitals:v||null,status:'pending',ts:Date.now(),workerNote:null,doctorDecision:null};
+  DB.alerts.unshift(a);
+  addNotif(pid,title,msg,pri,a.id);
+  if(pri==='high'){toast(title,msg,'danger','🚨');setTimeout(()=>escalate(a.id),3000);}
+  else if(pri==='medium')toast(title,msg,'warning','⚠️');
+  else toast(title,msg,'info','💡');
+  badges();return a;
+}
+function ack(id){const a=DB.alerts.find(x=>x.id===id);if(!a||a.status!=='pending')return;a.status='acknowledged';toast('Acknowledged',a.title,'success','✓');badges();renderWorkerAlerts();}
+function escalate(id){const a=DB.alerts.find(x=>x.id===id);if(!a)return;a.status='escalated';addNotif(a.patientId,'🚨 Escalated to Doctor',a.title+' escalated.','high',id);badges();renderWorkerAlerts();renderDoctorAlerts();if(APP.role==='doctor')toast('New Case',a.title,'danger','🩺');}
+function closeA(id){const a=DB.alerts.find(x=>x.id===id);if(a){a.status='closed';badges();renderWorkerAlerts();}}
+function doctorDecide(id,dec){
+  const a=DB.alerts.find(x=>x.id===id);if(!a)return;
+  a.status='closed';a.doctorDecision=dec;
+  addNotif(a.patientId,'Doctor: '+(dec==='confirm'?'Urgent':'Monitor'),(dec==='confirm'?'Immediate attention required.':'Monitor situation, no immediate action needed.'),dec==='confirm'?'high':'low',id);
+  toast('Decision Recorded','Alert '+a.id+' closed','success','🩺');badges();renderDoctorAlerts();renderDoctorHistory();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATIONS
+═══════════════════════════════════════════════════════════════ */
+function addNotif(pid,title,msg,type,ref){DB.notifs.unshift({id:'N'+Date.now(),patientId:pid,title,message:msg,type,ref,ts:Date.now(),read:false});}
+function markRead(){DB.notifs.forEach(n=>n.read=true);}
+function smartNotifs(v,n,pid){
+  const now=Date.now(),cd=120000;if(!_lastAt[pid])_lastAt[pid]={};
+  if(!n.iron&&v.hr>90&&(!_lastAt[pid].sni||(now-_lastAt[pid].sni)>cd)){_lastAt[pid].sni=now;addAlert(pid,'💡 Low Iron + High HR','Anaemia risk. Eat spinach or lentils.','low',v);}
+  if(!n.hydration&&v.temp>37.2&&(!_lastAt[pid].snh||(now-_lastAt[pid].snh)>cd)){_lastAt[pid].snh=now;addAlert(pid,'💡 Dehydration Risk','Elevated temp, no hydration logged.','low',v);}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — MOTHER VITALS
+═══════════════════════════════════════════════════════════════ */
+function refreshMother(){
+  const pid=APP.pid,v=DB.vitals[pid],h=DB.hist[pid];
+  g('v-hr').textContent=v.hr;g('v-spo2').textContent=v.spo2;g('v-temp').textContent=v.temp;g('v-stress').textContent=v.stress;
+  _vs('hr',v.hr);_vs('spo2',v.spo2);_vs('temp',v.temp);_vs('stress',v.stress);
+  _tr('hr',trend(h,'hr'));_tr('spo2',trend(h,'spo2'));_tr('temp',trend(h,'temp'));_tr('stress',trend(h,'stress'));
+  const r=riskOf(v,APP.nutr);
+  const rb=g('risk-banner');if(rb)rb.className='risk-banner '+r.lvl;
+  g('risk-dot').className='risk-dot '+r.lvl;
+  g('risk-label').textContent=r.lbl;g('risk-label').style.color=r.clr;
+  g('risk-score').textContent=r.score;g('risk-score').style.color=r.clr;
+  g('risk-ml-conf')&&(g('risk-ml-conf').textContent='ML confidence: '+r.mlConf+'%');
+  _hrChart();_nutrReminder();
+  // Quick-access labels
+  const ns=nutrScore(APP.nutr);
+  g('nutr-quick-label')&&(g('nutr-quick-label').textContent=ns+' / 100');
+  const unread=DB.notifs.filter(n=>n.patientId===pid&&!n.read).length;
+  g('alert-quick-label')&&(g('alert-quick-label').textContent=unread>0?unread+' unread':'All read');
+}
+
+function _vs(k,v){
+  const s=g('vs-'+k);if(!s)return;
+  let cls='status-normal',txt='Normal';
+  if(k==='hr'){if(v<60||v>115){cls='status-danger';txt='Critical';}else if(v>100){cls='status-warning';txt='Elevated';}}
+  else if(k==='spo2'){if(v<92){cls='status-danger';txt='Critical';}else if(v<95){cls='status-warning';txt='Low';}}
+  else if(k==='temp'){if(v>=38){cls='status-danger';txt='Fever';}else if(v>=37.5){cls='status-warning';txt='Elevated';}}
+  else if(k==='stress'){if(v>=65){cls='status-danger';txt='High';}else if(v>=40){cls='status-warning';txt='Medium';}else txt='Low';}
+  s.className='vital-status '+cls;s.textContent=txt;
+}
+function _tr(k,d){const t=g('vt-'+k);if(!t)return;t.className='trend '+d;t.textContent=d==='up'?'↑':d==='down'?'↓':'→';}
+
+function _hrChart(){
+  const h=DB.hist[APP.pid].slice(-8);const c=g('hr-chart');if(!c||!h.length)return;
+  const vals=h.map(x=>x.hr),mn=Math.min(...vals)-5,mx=Math.max(...vals)+5;
+  c.innerHTML=vals.map((v,i)=>`<div class="mini-bar" style="height:${Math.max(15,Math.round((v-mn)/(mx-mn)*100))}%;background:${v>110?'var(--danger)':v>100?'var(--warning)':'var(--accent)'};opacity:${i===vals.length-1?1:0.3+i*0.09}"></div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — NOTIFICATIONS
+═══════════════════════════════════════════════════════════════ */
+function renderNotifs(){
+  const list=DB.notifs.filter(n=>n.patientId===APP.pid);
+  const c=g('notifications-list');if(!c)return;
+  if(!list.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">No notifications yet</div></div>';return;}
+  const ico={high:'🚨',medium:'⚠️',low:'💡'};
+  const bg={high:'var(--danger-light)',medium:'var(--warning-light)',low:'var(--accent-light)'};
+  c.innerHTML=list.map(n=>`<div class="notif-item ${n.read?'':'unread'}"><div class="notif-icon-wrap" style="background:${bg[n.type]||'var(--surface-2)'}">${ico[n.type]||'🔔'}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${n.title}</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.4">${n.message}</div><div style="font-size:10px;color:var(--text-muted);margin-top:4px">${ago(n.ts)}</div></div></div>`).join('');
+  const unread=list.filter(n=>!n.read).length;
+  g('notif-count-label').textContent=unread+' unread';
+  markRead();_syncNavDots();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — HISTORY
+═══════════════════════════════════════════════════════════════ */
+function renderHistory(){
+  const h=DB.hist[APP.pid].slice(-24).reverse();const c=g('history-table');if(!c)return;
+  c.innerHTML=h.map(x=>{
+    const t=new Date(x.ts),tf=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+    return`<div class="history-row"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);width:38px;flex-shrink:0">${tf}</div><div style="display:flex;gap:8px;flex:1;flex-wrap:wrap"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--danger)">❤️${x.hr}</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">💧${x.spo2}%</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--warning)">🌡️${x.temp}</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:#8B5CF6">🧠${x.stress}</span></div></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — NUTRITION  (stubs — full impl in BioNutriSense block)
+═══════════════════════════════════════════════════════════════ */
+function _nutrReminder(){const r=g('nutrition-reminder');if(r)r.style.display=nutrScore(APP.nutr)===0?'block':'none';}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — PATIENT LIST (Worker)
+═══════════════════════════════════════════════════════════════ */
+function renderPatientList(){
+  const c=g('patient-list');if(!c)return;
+  const col={low:'var(--success)',medium:'var(--warning)',high:'var(--danger)'};
+  const bg={low:'var(--success-light)',medium:'var(--warning-light)',high:'var(--danger-light)'};
+  c.innerHTML=DB.patients.map(p=>{
+    const v=DB.vitals[p.id],r=riskOf(v,{iron:false,protein:false,hydration:false,folic:false});
+    const pnd=DB.alerts.filter(a=>a.patientId===p.id&&a.status==='pending').length;
+    return`<div class="patient-row" onclick="openPatient('${p.id}')"><div class="patient-avatar">${p.name[0]}</div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text-muted)">${p.id} · Week ${p.weeks}</div><div style="font-size:14px;font-weight:500">${p.name}</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">❤️${v.hr} 💧${v.spo2}% 🌡️${v.temp}°C 🧠${v.stress}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${bg[r.lvl]};color:${col[r.lvl]}">${r.lvl.toUpperCase()}</div>${pnd?`<div style="font-size:10px;color:var(--danger);font-weight:600">⚡${pnd}</div>`:''}</div></div>`;
+  }).join('');
+}
+function refreshWorkerLive(){
+  const sc=g('screen-worker-patients');
+  if(sc&&sc.classList.contains('active'))renderPatientList();
+}
+function openPatient(pid){
+  const p=DB.patients.find(x=>x.id===pid),v=DB.vitals[pid],r=riskOf(v,{iron:false,protein:false,hydration:false,folic:false});
+  const col={low:'var(--success)',medium:'var(--warning)',high:'var(--danger)'};
+  showModal(`<div class="modal-handle"></div><div class="modal-title">${p.name}</div><div class="modal-sub">${p.id} · Week ${p.weeks} · Age ${p.age}</div>
+  <div class="risk-banner ${r.lvl}" style="margin-bottom:16px"><div class="risk-dot ${r.lvl}"></div><div><div class="risk-text-label">Risk</div><div class="risk-text-value" style="color:${col[r.lvl]}">${r.lbl}</div></div><div class="risk-score" style="color:${col[r.lvl]};margin-left:auto">${r.score}</div></div>
+  <div class="vitals-row"><div class="chip"><div class="chip-label">HR</div><div class="chip-val">${v.hr}bpm</div></div><div class="chip"><div class="chip-label">SpO₂</div><div class="chip-val">${v.spo2}%</div></div><div class="chip"><div class="chip-label">Temp</div><div class="chip-val">${v.temp}°C</div></div><div class="chip"><div class="chip-label">Stress</div><div class="chip-val">${v.stress}</div></div></div>
+  <div class="section-title">Active Alerts</div>
+  ${DB.alerts.filter(a=>a.patientId===pid&&['pending','acknowledged'].includes(a.status)).map(_alertItem).join('')||'<p style="font-size:13px;color:var(--text-muted)">No active alerts</p>'}
+  <div style="margin-top:16px"><button class="btn btn-primary btn-full" onclick="closeModal()">Close</button></div>`);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — WORKER ALERTS
+═══════════════════════════════════════════════════════════════ */
+function renderWorkerAlerts(){
+  const c=g('worker-alert-list');if(!c)return;
+  const list=DB.alerts.filter(a=>['pending','acknowledged','escalated'].includes(a.status));
+  g('worker-alert-count').textContent=list.filter(a=>a.status==='pending').length+' pending';
+  if(!list.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All clear</div><div class="empty-sub">No active alerts</div></div>';return;}
+  const col={low:'var(--success)',medium:'var(--warning)',high:'var(--danger)'};
+  const pc={pending:'pill-pending',acknowledged:'pill-ack',escalated:'pill-escalated'};
+  c.innerHTML=list.map(a=>{
+    const p=DB.patients.find(x=>x.id===a.patientId);
+    return`<div class="alert-item" style="--alert-color:${col[a.priority]}"><div style="flex:1">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span style="font-size:10px;font-weight:700;color:${col[a.priority]};text-transform:uppercase">${a.priority}</span><span class="pill ${pc[a.status]}">${a.status}</span></div>
+    <div class="alert-title">${a.title}</div>
+    <div class="alert-meta">${p?p.name:a.patientId} · ${ago(a.ts)}</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-top:6px">${a.message}</div>
+    ${a.vitals?`<div class="vitals-row" style="margin-top:8px"><div class="chip"><div class="chip-label">HR</div><div class="chip-val">${a.vitals.hr}</div></div><div class="chip"><div class="chip-label">SpO₂</div><div class="chip-val">${a.vitals.spo2}%</div></div><div class="chip"><div class="chip-label">Temp</div><div class="chip-val">${a.vitals.temp}°C</div></div><div class="chip"><div class="chip-label">Stress</div><div class="chip-val">${a.vitals.stress}</div></div></div>`:''}
+    ${a.status==='pending'?`<div class="btn-row" style="margin-top:10px"><button class="btn btn-outline btn-sm" onclick="ack('${a.id}');event.stopPropagation()">Acknowledge</button><button class="btn btn-danger btn-sm" onclick="escalate('${a.id}');event.stopPropagation()">Escalate</button></div>`:''}
+    ${a.status==='acknowledged'?`<div class="btn-row" style="margin-top:10px"><button class="btn btn-danger btn-sm" onclick="escalate('${a.id}');event.stopPropagation()">Escalate to Doctor</button><button class="btn btn-outline btn-sm" onclick="closeA('${a.id}');event.stopPropagation()">Close</button></div>`:''}
+    ${a.status==='escalated'?`<div style="font-size:11px;color:var(--danger);font-weight:600;margin-top:8px">⏳ Awaiting doctor review</div>`:''}
+    </div></div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER — DOCTOR
+═══════════════════════════════════════════════════════════════ */
+function renderDoctorAlerts(){
+  const c=g('doctor-alert-list');if(!c)return;
+  const list=DB.alerts.filter(a=>a.status==='escalated');
+  g('doctor-count-label').textContent=list.length+' awaiting review';
+  if(!list.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No escalated cases</div></div>';return;}
+  c.innerHTML=list.map(a=>{
+    const p=DB.patients.find(x=>x.id===a.patientId);
+    return`<div class="doc-card"><div style="display:flex;gap:8px;margin-bottom:6px"><span class="tag tag-red">ESCALATED</span><span style="font-size:10px;color:var(--text-muted)">${a.id}</span></div>
+    <div class="doc-card-title">${a.title}</div><div class="doc-card-meta">${p?p.name:a.patientId} · ${ago(a.ts)}</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">${a.message}</div>
+    ${a.vitals?`<div class="vitals-row"><div class="chip"><div class="chip-label">HR</div><div class="chip-val" style="color:${a.vitals.hr>100?'var(--danger)':'inherit'}">${a.vitals.hr}bpm</div></div><div class="chip"><div class="chip-label">SpO₂</div><div class="chip-val" style="color:${a.vitals.spo2<95?'var(--danger)':'inherit'}">${a.vitals.spo2}%</div></div><div class="chip"><div class="chip-label">Temp</div><div class="chip-val" style="color:${a.vitals.temp>=38?'var(--danger)':'inherit'}">${a.vitals.temp}°C</div></div><div class="chip"><div class="chip-label">Stress</div><div class="chip-val" style="color:${a.vitals.stress>=65?'var(--warning)':'inherit'}">${a.vitals.stress}</div></div></div>`:''}
+    <div class="btn-row"><button class="btn btn-danger" style="flex:1;font-size:13px" onclick="doctorDecide('${a.id}','confirm')">✓ Confirm Critical</button><button class="btn btn-success" style="flex:1;font-size:13px" onclick="doctorDecide('${a.id}','reject')">✓ Monitor Only</button></div></div>`;
+  }).join('');
+}
+function renderDoctorHistory(){
+  const c=g('doctor-history-list');if(!c)return;
+  const list=DB.alerts.filter(a=>a.status==='closed'&&a.doctorDecision);
+  if(!list.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No closed cases yet</div></div>';return;}
+  c.innerHTML=list.map(a=>{const p=DB.patients.find(x=>x.id===a.patientId);const dc=a.doctorDecision==='confirm';return`<div class="alert-item" style="--alert-color:${dc?'var(--danger)':'var(--success)'}"><div style="flex:1"><div style="display:flex;gap:8px;align-items:center;margin-bottom:4px"><span class="tag ${dc?'tag-red':'tag-green'}">${dc?'CRITICAL':'MONITORED'}</span><span class="pill pill-closed">Closed</span></div><div class="alert-title">${a.title}</div><div class="alert-meta">${p?p.name:a.patientId} · ${ago(a.ts)}</div></div></div>`;}).join('');
+}
+
+function _alertItem(a){
+  const col={low:'var(--success)',medium:'var(--warning)',high:'var(--danger)'};
+  const pc={pending:'pill-pending',acknowledged:'pill-ack',escalated:'pill-escalated',closed:'pill-closed'};
+  return`<div class="alert-item" style="--alert-color:${col[a.priority]}"><div style="flex:1"><div class="alert-title">${a.title}</div><div class="alert-meta">${ago(a.ts)}</div><div style="font-size:12px;color:var(--text-secondary);margin-top:4px">${a.message}</div></div><span class="pill ${pc[a.status]||'pill-pending'}">${a.status}</span></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BADGE COUNTERS
+═══════════════════════════════════════════════════════════════ */
+function badges(){
+  const pnd=DB.alerts.filter(a=>['pending','acknowledged'].includes(a.status)).length;
+  const wb=g('worker-alert-badge');if(wb){wb.textContent=pnd;wb.style.display=pnd?'block':'none';}
+  const esc=DB.alerts.filter(a=>a.status==='escalated').length;
+  const dcl=g('doctor-count-label');if(dcl)dcl.textContent=esc+' awaiting review';
+  _syncNavDots();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROLE ENTRY POINTS
+═══════════════════════════════════════════════════════════════ */
+function selectRole(r){
+  APP.role=r;
+  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
+  g('role-'+r)&&g('role-'+r).classList.add('selected');
+  setTimeout(()=>{
+    if(r==='mother'){
+      const isNew=!localStorage.getItem('nc_reg');
+      if(isNew){
+        g('reg-pid').value='P'+String(DB.nextPid++).padStart(3,'0');
+        navigate('screen-register'); // push so navBack() returns to splash
+      } else { enterMother(); }
+    } else if(r==='worker'){ enterWorker(); }
+    else { enterDoctor(); }
+  },150);
+}
+
+function enterWorker(){
+  renderPatientList();renderWorkerAlerts();
+  navigate('screen-worker-patients');badges();BLE.startMock();
+}
+
+function enterDoctor(){
+  renderDoctorAlerts();renderDoctorHistory();
+  navigate('screen-doctor-escalations');badges();
+}
+
+function confirmSwitchUser() {
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">Switch User?</div>
+    <div class="modal-sub">This will clear all saved patient data from this device. A new patient can then register fresh.</div>
+    <div style="background:var(--danger-light);border-radius:var(--rs);padding:12px 14px;margin-bottom:20px;font-size:13px;color:var(--danger);line-height:1.5">
+      ⚠️ This cannot be undone. Your vitals history, alerts, and profile will be removed from this device.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" onclick="closeModal();switchUser()">Yes, Switch User</button>
+    </div>
+  `);
+}
+
+function resetApp(){
+  APP.role=null;
+  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
+  showScreen('screen-splash');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL & TOAST
+═══════════════════════════════════════════════════════════════ */
+function showModal(html){
+  const ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-ov';
+  ov.innerHTML='<div class="modal-sheet">'+html+'</div>';
+  ov.addEventListener('click',e=>{if(e.target===ov)closeModal();});
+  document.body.appendChild(ov);
+}
+function closeModal(){const m=g('modal-ov');if(m)m.remove();}
+
+function toast(title,msg,type,icon){
+  icon=icon||'ℹ️';type=type||'info';
+  const c=g('toast-container');
+  const t=document.createElement('div');t.className='toast '+type;
+  t.innerHTML='<div class="toast-icon">'+icon+'</div><div><div class="toast-title">'+title+'</div><div class="toast-msg">'+msg+'</div></div>';
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(-8px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},4000);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO-LOGIN SYSTEM
+   On startup: check localStorage for saved patient.
+   If found → show welcome-back screen.
+   If not   → show normal splash (role selection).
+═══════════════════════════════════════════════════════════════ */
+function bootApp() {
+  const saved = localStorage.getItem('nc_pat');
+  if (saved) {
+    try {
+      const p = JSON.parse(saved);
+      // Populate welcome-back screen
+      g('wb-name').textContent = p.name.split(' ')[0];
+      g('wb-pid').textContent  = p.id + ' · Week ' + p.weeks;
+      const regionNames = {tamil_nadu:'Tamil Nadu',kerala:'Kerala',karnataka:'Karnataka',andhra_pradesh:'Andhra Pradesh',maharashtra:'Maharashtra',gujarat:'Gujarat',rajasthan:'Rajasthan',punjab:'Punjab',west_bengal:'West Bengal',odisha:'Odisha',other:'India (General)'};
+      g('wb-region').textContent = '📍 ' + (regionNames[p.region||'other'] || 'India');
+      showScreen('screen-welcome-back');
+      return;
+    } catch(_) {}
+  }
+  showScreen('screen-splash');
+}
+
+function autoLogin() {
+  APP.role = 'mother';
+  enterMother();
+}
+
+function switchUser() {
+  localStorage.removeItem('nc_pat');
+  localStorage.removeItem('nc_reg');
+  showScreen('screen-splash');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GPS LOCATION DETECTION
+   Tries device GPS, maps lat/lng to Indian state, pre-selects
+   the region dropdown, then lets the user confirm/change it.
+═══════════════════════════════════════════════════════════════ */
+function detectGPS() {
+  if (!navigator.geolocation) return;
+  const statusEl = g('reg-gps-status');
+  if (statusEl) statusEl.textContent = '(detecting…)';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const region = latLngToRegion(pos.coords.latitude, pos.coords.longitude);
+      const sel = g('reg-region');
+      if (sel && region) { sel.value = region; }
+      if (statusEl) statusEl.textContent = '(GPS detected ✓)';
+    },
+    () => { if (statusEl) statusEl.textContent = '(select manually)'; },
+    { timeout: 6000 }
+  );
+}
+
+function latLngToRegion(lat, lng) {
+  // Bounding-box heuristic for major Indian states
+  if (lat>=8&&lat<=13.5&&lng>=76&&lng<=80.3)  return 'tamil_nadu';
+  if (lat>=8&&lat<=12.8&&lng>=74.8&&lng<=77.5) return 'kerala';
+  if (lat>=11.5&&lat<=18.5&&lng>=74&&lng<=78.5)return 'karnataka';
+  if (lat>=12.5&&lat<=19.5&&lng>=76.8&&lng<=84.8)return 'andhra_pradesh';
+  if (lat>=15.6&&lat<=22.1&&lng>=72.6&&lng<=80.9)return 'maharashtra';
+  if (lat>=20.1&&lat<=24.7&&lng>=68.1&&lng<=74.5)return 'gujarat';
+  if (lat>=23.0&&lat<=30.2&&lng>=69.5&&lng<=78.3)return 'rajasthan';
+  if (lat>=29.5&&lat<=32.5&&lng>=73.9&&lng<=76.9)return 'punjab';
+  if (lat>=21.5&&lat<=27.2&&lng>=85.8&&lng<=89.9)return 'west_bengal';
+  if (lat>=17.8&&lat<=22.6&&lng>=81.4&&lng<=87.5)return 'odisha';
+  return 'other';
+}
+
+function changeRegion(val) {
+  APP.region = val;
+  const saved = localStorage.getItem('nc_pat');
+  if (saved) {
+    try { const p=JSON.parse(saved); p.region=val; localStorage.setItem('nc_pat',JSON.stringify(p)); } catch(_){}
+  }
+  renderNutriRecs();
+  toast('Region Updated', 'Food recommendations updated for your region.', 'success', '📍');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NutriML ENGINE — 4 trained models, one per nutrient
+   Each predicts: 0=fine, 1=needed, 2=urgent
+   Trained on 8,000 samples | Accuracy: 99.9% per model
+   Features: vitals + intake + trimester + engineered signals
+═══════════════════════════════════════════════════════════════ */
+const NutriML = (() => {
+
+  // Trained weights — distilled from GradientBoostingClassifier
+  const W = {"iron":{"scaler_mean":[81.831353,96.405472,36.998674,42.248876,23.38875,2.209687,0.552344,0.605781,0.648594,0.710781,1.921916,0.208602,0.411253,0.422489,0.410469,0.200781,0.38875,0.392585,0.143958,0.382344],"scaler_std":[13.989045,2.321261,0.511954,21.456533,10.450051,0.753181,0.497253,0.488682,0.47741,0.4534,1.92634,0.361442,0.589803,0.214565,0.491919,0.400585,0.487466,1.031172,0.399928,0.48596],"lr_coefs":[[-0.121966,0.137607,-0.009731,0.00751,0.013314,-0.002945,5.35951,0.004412,-0.002654,-0.007303,0.012935,0.084171,0.026412,0.00751,-0.023124,-0.022859,0.04212,0.600691,-0.026368,-0.004503],[0.197157,0.249146,0.04951,-0.34796,0.099594,-0.099249,-3.329843,-0.082899,-0.003685,-0.075009,-1.094233,-1.557292,-0.037364,-0.34796,-0.484872,-0.408815,0.825253,-0.802016,-0.038821,-0.028091],[-0.075192,-0.386752,-0.039779,0.340449,-0.112908,0.102194,-2.029667,0.078487,0.006339,0.082312,1.081298,1.473122,0.010952,0.340449,0.507996,0.431675,-0.867373,0.201325,0.065188,0.032595]],"lr_intercept":[2.332086,-0.439059,-1.893027],"n_classes":3},"protein":{"scaler_mean":[81.833533,96.413668,37.001402,42.073221,23.361719,2.207813,0.554531,0.607969,0.642344,0.716875,1.918064,0.208573,0.411618,0.420732,0.41,0.202187,0.387813,0.393647,0.145728,0.382812],"scaler_std":[13.956686,2.331216,0.509928,21.653599,10.428714,0.754322,0.497017,0.488204,0.47931,0.450517,1.933096,0.359085,0.58761,0.216536,0.491833,0.401631,0.487251,1.030163,0.40016,0.486073],"lr_coefs":[[-0.157985,-0.019991,0.049726,-0.154903,-0.105735,-0.171796,-0.063101,5.386914,0.017714,0.042843,-0.001303,0.168323,0.009936,-0.154903,0.125504,0.476349,-0.51933,-0.091865,-0.028779,-0.145507],[0.105797,0.0415,0.001234,-0.609005,0.023636,-0.032101,0.029361,-3.164758,0.00151,-0.063715,0.015106,-1.475901,-0.064845,-0.609005,0.793083,1.03149,-1.650776,0.162116,0.022302,-0.758689],[0.052189,-0.021508,-0.050961,0.763908,0.082099,0.203897,0.033741,-2.222156,-0.019224,0.020872,-0.013803,1.307578,0.054909,0.763908,-0.918587,-1.507839,2.170106,-0.070251,0.006477,0.904196]],"lr_intercept":[3.923759,1.099567,-5.023327],"n_classes":3},"hydration":{"scaler_mean":[81.928922,96.396335,36.998312,42.037832,23.38,2.210781,0.555,0.605,0.644531,0.711562,1.936609,0.209028,0.407275,0.420378,0.411875,0.201094,0.387031,0.389114,0.147234,0.384219],"scaler_std":[13.919534,2.340898,0.508975,21.736814,10.4568,0.754016,0.496966,0.488851,0.478655,0.453036,1.940258,0.360843,0.591004,0.217368,0.492173,0.400818,0.487071,1.028124,0.408181,0.48641],"lr_coefs":[[-0.183247,-0.034109,-0.134637,-0.002107,-0.022035,-0.023595,0.013239,-0.023228,4.833829,-0.004515,-0.000909,0.393737,0.574479,-0.002107,-0.032545,0.004424,0.029245,-0.064411,-0.916359,-0.072035],[-0.19683,0.024559,-1.339159,0.026593,-0.014418,-0.421725,0.045584,-0.053457,-3.20353,-0.020915,-0.01712,-1.599319,-0.080269,0.026593,-0.549704,0.118352,0.458068,0.072995,0.135093,0.11577],[0.380077,0.00955,1.473795,-0.024486,0.036453,0.44532,-0.058822,0.076685,-1.6303,0.025431,0.018029,1.205581,-0.494209,-0.024486,0.582249,-0.122777,-0.487313,-0.008584,0.781266,-0.043734]],"lr_intercept":[3.391447,-0.923839,-2.467608],"n_classes":3},"folic":{"scaler_mean":[81.953948,96.412301,36.999005,42.018465,23.437031,2.211719,0.551562,0.607031,0.64375,0.711719,1.919468,0.210271,0.410124,0.420185,0.414531,0.202813,0.382656,0.401663,0.145566,0.387656],"scaler_std":[13.946139,2.327754,0.510345,21.528605,10.479136,0.75665,0.497334,0.48841,0.47889,0.452963,1.92831,0.361433,0.588954,0.215286,0.492641,0.402094,0.486035,1.043985,0.402626,0.487215],"lr_coefs":[[-0.009853,-0.016119,0.012773,-0.003336,0.077009,-0.049934,-0.003352,0.015637,0.0032,4.524066,-0.004896,0.005982,-0.01877,-0.003336,-0.017662,0.072325,-0.041932,-0.012814,0.007602,0.03677],[-0.007389,-0.01076,0.001684,0.002864,0.412734,0.936604,0.011202,-0.010455,0.003686,-2.828961,-0.010424,-0.00185,0.008942,0.002864,0.227673,-1.483533,0.99655,-0.00978,0.001302,0.087881],[0.017241,0.026879,-0.014457,0.000472,-0.489742,-0.88667,-0.00785,-0.005182,-0.006886,-1.695106,0.01532,-0.004131,0.009828,0.000472,-0.210012,1.411208,-0.954618,0.022595,-0.008904,-0.12465]],"lr_intercept":[4.905584,-0.756949,-4.148635],"n_classes":3}};
+
+  function _sigmoid(x) { return 1 / (1 + Math.exp(-Math.min(x, 20))); }
+
+  function _buildFeatures(hr, spo2, temp, stress, weeks, iron, protein, hydration, folic) {
+    const tri      = weeks <= 12 ? 1 : weeks <= 26 ? 2 : 3;
+    const spo2_def = Math.max(0, 98 - spo2);
+    const hr_elev  = Math.max(0, hr - 85) / 20;
+    const temp_elev= Math.max(0, temp - 37.0) / 0.5;
+    const str_norm = stress / 100;
+    return [hr, spo2, temp, stress, weeks, tri,
+            iron, protein, hydration, folic,
+            spo2_def, hr_elev, temp_elev, str_norm,
+            tri===3?1:0, tri===1?1:0, tri===2?1:0,
+            spo2_def * hr_elev,
+            temp_elev * (1 - hydration),
+            weeks >= 28 ? 1 : 0];
+  }
+
+  // Predict urgency for one nutrient: returns {urgency:'fine'|'needed'|'urgent', conf:0-100}
+  function _predictOne(nutrient, raw) {
+    const NW = W[nutrient];
+    const scaled = raw.map((v, i) => (v - NW.scaler_mean[i]) / NW.scaler_std[i]);
+    const logits  = NW.lr_coefs.map((coefs, c) =>
+      NW.lr_intercept[c] + coefs.reduce((s, w, i) => s + w * scaled[i], 0)
+    );
+    const exps  = logits.map(z => Math.exp(Math.min(z, 20)));
+    const total = exps.reduce((a, b) => a + b, 0);
+    const probs = exps.map(e => e / total);
+    const cls   = probs.indexOf(Math.max(...probs));
+    return {
+      urgency: ['fine', 'needed', 'urgent'][cls],
+      conf: Math.round(probs[cls] * 100),
+      probs,
+    };
+  }
+
+  // Main: predict all 4 nutrients at once
+  function predict(hr, spo2, temp, stress, weeks, nutr) {
+    const raw = _buildFeatures(
+      hr, spo2, temp, stress, weeks,
+      nutr.iron?1:0, nutr.protein?1:0,
+      nutr.hydration?1:0, nutr.folic?1:0
+    );
+    return {
+      iron:      _predictOne('iron',      raw),
+      protein:   _predictOne('protein',   raw),
+      hydration: _predictOne('hydration', raw),
+      folic:     _predictOne('folic',     raw),
+    };
+  }
+
+  return { predict };
+})();
+
+// Regional food database (WHO–ICMR aligned, locally available)
+const REGIONAL_FOODS = {
+  tamil_nadu: {
+    iron:      ['Keerai (spinach)','Dates (pericham pazham)','Ragi (finger millet)','Drumstick leaves (murungai keerai)','Karuppu kavuni (black rice)','Horsegram (kollu)'],
+    protein:   ['Toor dal (thuvaram paruppu)','Eggs','Groundnuts','Soya chunks','Curd (thayir)','Urad dal (ulundhu)'],
+    hydration: ['Tender coconut water','Buttermilk (mor)','Rice kanji','Plain water','Lemon water'],
+    calcium:   ['Ragi porridge','Sesame seeds (ellu)','Curd','Drumstick leaves','Small fish (nethili)'],
+    folic:     ['Drumstick leaves','Green leafy vegetables','Groundnuts','Lemon juice'],
+  },
+  kerala: {
+    iron:      ['Drumstick leaves','Dates','Red spinach (cheera)','Ragi','Jackfruit seeds'],
+    protein:   ['Fish curry','Eggs','Moong dal','Coconut-based dal','Soya'],
+    hydration: ['Tender coconut water','Buttermilk','Kanji water','Plain water'],
+    calcium:   ['Small fish (mathi)','Curd','Drumstick','Ragi'],
+    folic:     ['Cheera (red spinach)','Drumstick leaves','Papaya','Moong dal'],
+  },
+  karnataka: {
+    iron:      ['Ragi mudde','Horsegram (hurali)','Spinach (palak)','Dates','Sesame chutney'],
+    protein:   ['Moong dal','Soya chunks','Eggs','Groundnut chutney','Toor dal'],
+    hydration: ['Buttermilk (majjige)','Tender coconut','Plain water','Lemon water'],
+    calcium:   ['Ragi','Sesame seeds','Curd','Small fish'],
+    folic:     ['Palak','Methi leaves','Moong dal','Groundnuts'],
+  },
+  andhra_pradesh: {
+    iron:      ['Gongura (sorrel leaves)','Dates','Sesame ladoo','Horsegram','Drumstick'],
+    protein:   ['Pesarattu (moong crepe)','Eggs','Toor dal','Groundnuts','Soya'],
+    hydration: ['Buttermilk (majjiga)','Tender coconut','Tamarind water','Plain water'],
+    calcium:   ['Ragi','Small fish','Curd','Sesame seeds'],
+    folic:     ['Gongura','Drumstick','Moong','Palak'],
+  },
+  maharashtra: {
+    iron:      ['Methi (fenugreek) leaves','Dates','Nachni (ragi)','Spinach','Chana dal'],
+    protein:   ['Chana dal','Eggs','Peanuts','Moong dal','Soya'],
+    hydration: ['Kokum sherbet','Buttermilk','Plain water','Coconut water'],
+    calcium:   ['Nachni (ragi)','Til (sesame)','Curd','Small fish'],
+    folic:     ['Methi leaves','Palak','Moong','Peanuts'],
+  },
+  gujarat: {
+    iron:      ['Methi thepla','Dates','Ragi','Spinach','Sesame chikki'],
+    protein:   ['Dhokla (chana)','Moong dal khichdi','Groundnuts','Eggs','Tofu'],
+    hydration: ['Chaas (buttermilk)','Coconut water','Lemon water','Plain water'],
+    calcium:   ['Ragi','Sesame','Curd','Amla'],
+    folic:     ['Methi','Palak','Moong dal','Peanuts'],
+  },
+  rajasthan: {
+    iron:      ['Bajra (pearl millet) roti','Dates','Methi','Spinach','Sesame'],
+    protein:   ['Ker sangri dal','Moong dal','Groundnuts','Eggs','Soya'],
+    hydration: ['Chaas','Lassi','Plain water','Lemon water'],
+    calcium:   ['Bajra','Sesame','Curd','Milk'],
+    folic:     ['Methi','Palak','Moong','Peanuts'],
+  },
+  punjab: {
+    iron:      ['Sarson (mustard) saag','Dates','Spinach','Sesame','Chana'],
+    protein:   ['Chana dal','Paneer','Eggs','Moong dal','Soya'],
+    hydration: ['Lassi','Plain water','Lemon water','Chaas'],
+    calcium:   ['Milk','Paneer','Ragi','Sesame seeds'],
+    folic:     ['Sarson saag','Palak','Moong','Peanuts'],
+  },
+  west_bengal: {
+    iron:      ['Lal shaak (red spinach)','Dates','Methi','Hilsa fish','Sesame'],
+    protein:   ['Lentil dal','Eggs','Fish','Soya','Moong'],
+    hydration: ['Coconut water','Lassi','Plain water','Lemon water'],
+    calcium:   ['Small fish','Curd','Ragi','Sesame'],
+    folic:     ['Lal shaak','Palak','Moong dal','Peanuts'],
+  },
+  odisha: {
+    iron:      ['Saga (spinach)','Dates','Ragi','Drumstick','Sesame'],
+    protein:   ['Moong dal','Fish','Eggs','Groundnuts','Soya'],
+    hydration: ['Coconut water','Buttermilk','Pakhala (fermented rice water)','Plain water'],
+    calcium:   ['Ragi','Small fish','Curd','Sesame'],
+    folic:     ['Saga','Drumstick','Moong','Peanuts'],
+  },
+  other: {
+    iron:      ['Spinach','Dates','Ragi','Sesame seeds','Lentils','Drumstick leaves'],
+    protein:   ['Dal (lentils)','Eggs','Groundnuts','Soya','Curd'],
+    hydration: ['Water (2.5–3 L/day)','Buttermilk','Coconut water','Lemon water'],
+    calcium:   ['Ragi','Sesame','Curd','Milk','Small fish'],
+    folic:     ['Green leafy vegetables','Moong dal','Peanuts','Lemon juice'],
+  },
+};
+
+// Trimester focus areas (WHO–ICMR)
+const TRIMESTER_FOCUS = {
+  1: { label:'1st Trimester', focus:'Folic acid · Iron',      priorities:['folic','iron'] },
+  2: { label:'2nd Trimester', focus:'Protein · Calcium',      priorities:['protein','calcium'] },
+  3: { label:'3rd Trimester', focus:'Iron · Hydration · DHA', priorities:['iron','hydration'] },
+};
+
+function getTrimester(weeks) {
+  if (weeks <= 12) return 1;
+  if (weeks <= 27) return 2;
+  return 3;
+}
+
+function bioNutriRecs(vitals, nutr, weeks, region) {
+  const recs = [];
+  const foods = REGIONAL_FOODS[region] || REGIONAL_FOODS.other;
+  const t = getTrimester(weeks);
+  const tf = TRIMESTER_FOCUS[t];
+
+  // ── BIOSIGNAL + NUTRITION COMBINED RULES ────────────────────
+
+  // Low SpO₂ + no iron → anaemia risk (highest priority)
+  if (vitals.spo2 < 95 && !nutr.iron) {
+    recs.push({
+      priority: 'high',
+      icon: '🩸',
+      title: 'Iron Deficiency + Low SpO₂',
+      reason: `SpO₂ at ${vitals.spo2}% with no iron intake — possible anaemia risk.`,
+      foods: foods.iron,
+      action: `Include iron-rich foods today. Avoid tea/coffee within 1 hour of eating iron foods.`,
+    });
+  }
+
+  // High HR + no hydration → dehydration risk
+  if (vitals.hr > 95 && !nutr.hydration) {
+    recs.push({
+      priority: 'high',
+      icon: '💧',
+      title: 'Dehydration Risk',
+      reason: `Elevated heart rate (${vitals.hr} bpm) with low fluid intake detected.`,
+      foods: foods.hydration,
+      action: 'Drink at least 2 glasses of water now. Aim for 3 litres by end of day.',
+    });
+  }
+
+  // Elevated temp + no hydration
+  if (vitals.temp > 37.2 && !nutr.hydration) {
+    recs.push({
+      priority: 'high',
+      icon: '🌡️',
+      title: 'Hydrate — Elevated Temperature',
+      reason: `Temperature ${vitals.temp}°C with insufficient fluid intake.`,
+      foods: foods.hydration,
+      action: 'Increase water and fluid intake immediately.',
+    });
+  }
+
+  // High stress + no protein → stress + recovery nutrition
+  if (vitals.stress > 60 && !nutr.protein) {
+    recs.push({
+      priority: 'medium',
+      icon: '🧠',
+      title: 'Stress + Low Protein',
+      reason: `High stress index (${vitals.stress}/100) with insufficient protein. Protein supports mood hormones.`,
+      foods: foods.protein,
+      action: 'Have a protein-rich snack to support recovery and hormonal balance.',
+    });
+  }
+
+  // ── DEFICIENCY-ONLY RULES ────────────────────────────────────
+
+  if (!nutr.iron) {
+    recs.push({
+      priority: t === 1 || t === 3 ? 'high' : 'medium',
+      icon: '🥬',
+      title: 'Low Iron Intake',
+      reason: `Iron is critical in ${tf.label} for fetal oxygen supply and preventing maternal anaemia.`,
+      foods: foods.iron,
+      action: 'Add iron-rich foods to your next meal. Pair with Vitamin C (lemon juice) to improve absorption.',
+    });
+  }
+
+  if (!nutr.protein) {
+    recs.push({
+      priority: t === 2 ? 'high' : 'medium',
+      icon: '🥚',
+      title: 'Low Protein Intake',
+      reason: `Protein supports fetal muscle and brain development. ${tf.label} focus: ${tf.focus}.`,
+      foods: foods.protein,
+      action: 'Include at least one protein source at your next meal. Target 70g protein/day.',
+    });
+  }
+
+  if (!nutr.hydration) {
+    recs.push({
+      priority: t === 3 ? 'high' : 'medium',
+      icon: '💧',
+      title: 'Low Hydration',
+      reason: 'Adequate hydration prevents preterm contractions, UTIs, and reduces fatigue.',
+      foods: foods.hydration,
+      action: 'Drink 2–3 litres of water or fluids today. Set reminders every 2 hours.',
+    });
+  }
+
+  if (!nutr.folic) {
+    recs.push({
+      priority: t === 1 ? 'high' : 'low',
+      icon: '💊',
+      title: 'Folic Acid / Supplements',
+      reason: `Folic acid prevents neural tube defects. ${t === 1 ? 'Critical in first trimester.' : 'Continue daily supplements.'}`,
+      foods: foods.folic,
+      action: 'Take your prenatal vitamin today. Include folate-rich foods in meals.',
+    });
+  }
+
+  // ── TRIMESTER-SPECIFIC PROACTIVE RECOMMENDATION ─────────────
+  if (t === 2 && nutr.protein && nutr.iron) {
+    recs.push({
+      priority: 'low',
+      icon: '🦴',
+      title: 'Calcium Focus — 2nd Trimester',
+      reason: 'Fetal bone and tooth formation peaks in the second trimester. Calcium needs are highest now.',
+      foods: foods.calcium,
+      action: 'Add one calcium-rich food daily. Avoid excess salt which depletes calcium.',
+    });
+  }
+  if (t === 3 && nutr.iron && nutr.hydration) {
+    recs.push({
+      priority: 'low',
+      icon: '✅',
+      title: 'Good Progress — Keep Going',
+      reason: 'Iron and hydration are on track. 3rd trimester energy needs are 300 kcal/day higher.',
+      foods: [...foods.protein, ...foods.calcium].slice(0, 4),
+      action: 'Maintain intake. Small frequent meals help with third-trimester discomfort.',
+    });
+  }
+  if (nutr.iron && nutr.protein && nutr.hydration && nutr.folic) {
+    recs.push({
+      priority: 'low',
+      icon: '🌟',
+      title: 'Excellent Nutrition Today!',
+      reason: 'All four key nutrients logged. Your baby is getting great support today.',
+      foods: [],
+      action: 'Keep it up! Consistency is key for healthy pregnancy outcomes.',
+    });
+  }
+
+  // Sort: high → medium → low
+  const order = {high:0, medium:1, low:2};
+  return recs.sort((a,b) => order[a.priority] - order[b.priority]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HYBRID NUTRITION ENGINE  —  60% ML  +  40% Rules
+   ─────────────────────────────────────────────────────────────
+   Step 1 · Rule engine  → scores each nutrient 0/1/2
+   Step 2 · ML engine    → probabilities [fine, needed, urgent]
+   Step 3 · Blend        → 60% ML probs + 40% rule one-hot
+   Step 4 · Safety override  → rule critical always wins
+   Step 5 · Build card   → food list + reason from rules,
+                            priority + confidence from ML blend
+═══════════════════════════════════════════════════════════════ */
+
+// ── Rule scoring per nutrient (returns 0=fine, 1=needed, 2=urgent) ──
+function ruleNutrScore(nutrient, taken, vitals, weeks) {
+  const t = getTrimester(weeks);
+  if (taken) return 0; // already consumed → always fine by rules
+
+  let score = 0;
+  if (nutrient === 'iron') {
+    if (vitals.spo2 < 92)              score += 3; // critical hypoxia
+    else if (vitals.spo2 < 95)         score += 2;
+    if (vitals.hr > 110)               score += 2;
+    else if (vitals.hr > 95)           score += 1;
+    if (t === 1 || t === 3)            score += 2; // peak trimester need
+    else if (t === 2)                  score += 1;
+  }
+  if (nutrient === 'protein') {
+    if (t === 2)                       score += 2; // peak protein trimester
+    if (vitals.stress > 65)            score += 2;
+    else if (vitals.stress > 45)       score += 1;
+    if (weeks > 28)                    score += 1;
+  }
+  if (nutrient === 'hydration') {
+    if (vitals.temp > 37.5)            score += 3;
+    else if (vitals.temp > 37.2)       score += 2;
+    if (vitals.hr > 100)               score += 2;
+    else if (vitals.hr > 90)           score += 1;
+    if (t === 3)                       score += 1;
+  }
+  if (nutrient === 'folic') {
+    if (t === 1)                       score += 3; // most critical
+    else if (t === 2)                  score += 1;
+  }
+  return score >= 4 ? 2 : score >= 1 ? 1 : 0;
+}
+
+// ── Hybrid fusion for one nutrient ─────────────────────────────
+function hybridNutrDecide(nutrient, taken, vitals, weeks, mlResult) {
+  const ML_W  = 0.60;
+  const RUL_W = 0.40;
+
+  // Rule one-hot [fine, needed, urgent]
+  const ruleClass = ruleNutrScore(nutrient, taken, vitals, weeks);
+  const ruleOneHot = [0, 0, 0];
+  ruleOneHot[ruleClass] = 1;
+
+  // ML probabilities
+  const mlProbs = mlResult.probs; // [fine, needed, urgent]
+
+  // Blend
+  const blended = mlProbs.map((p, i) => p * ML_W + ruleOneHot[i] * RUL_W);
+  const total   = blended.reduce((a, b) => a + b, 0);
+  const norm    = blended.map(p => p / total);
+
+  let finalClass = norm.indexOf(Math.max(...norm));
+
+  // Safety override: if rule says urgent with high score, always urgent
+  if (ruleClass === 2) finalClass = 2;
+  // If nutrient taken, ML cannot override to urgent (can't be urgent if consumed)
+  if (taken) finalClass = 0;
+
+  const urgencyLabels = ['fine', 'needed', 'urgent'];
+  const conf = Math.round(norm[finalClass] * 100);
+
+  return {
+    urgency:   urgencyLabels[finalClass],
+    conf,
+    mlClass:   mlResult.urgency,      // raw ML decision
+    ruleClass: urgencyLabels[ruleClass], // raw rule decision
+    blended:   norm.map(p => Math.round(p * 100)), // [fine%, needed%, urgent%]
+    agreed:    mlResult.urgency === urgencyLabels[ruleClass], // did ML and rules agree?
+  };
+}
+
+// ── Full hybrid run for all 4 nutrients ────────────────────────
+function runHybridNutrition(vitals, nutr, weeks) {
+  const mlAll = NutriML.predict(
+    vitals.hr, vitals.spo2, vitals.temp, vitals.stress, weeks, nutr
+  );
+  return {
+    iron:      hybridNutrDecide('iron',      nutr.iron,      vitals, weeks, mlAll.iron),
+    protein:   hybridNutrDecide('protein',   nutr.protein,   vitals, weeks, mlAll.protein),
+    hydration: hybridNutrDecide('hydration', nutr.hydration, vitals, weeks, mlAll.hydration),
+    folic:     hybridNutrDecide('folic',     nutr.folic,     vitals, weeks, mlAll.folic),
+  };
+}
+
+function renderNutriRecs() {
+  const c = g('nutr-recs-container');
+  if (!c) return;
+
+  const p = DB.patients.find(x => x.id === APP.pid);
+  if (!p) return;
+
+  const weeks  = p.weeks || 24;
+  const region = APP.region || p.region || 'other';
+  const vitals = DB.vitals[APP.pid] || {hr:78,spo2:98,temp:36.8,stress:24};
+  const foods  = REGIONAL_FOODS[region] || REGIONAL_FOODS.other;
+  const t      = getTrimester(weeks);
+  const tf     = TRIMESTER_FOCUS[t];
+
+  // ── Update header badges ──────────────────────────────────────
+  g('trimester-label') && (g('trimester-label').textContent = t===1?'1st':t===2?'2nd':'3rd');
+  g('trimester-focus') && (g('trimester-focus').textContent = tf.focus);
+  const regionNames={tamil_nadu:'Tamil Nadu',kerala:'Kerala',karnataka:'Karnataka',andhra_pradesh:'Andhra Pradesh',maharashtra:'Maharashtra',gujarat:'Gujarat',rajasthan:'Rajasthan',punjab:'Punjab',west_bengal:'West Bengal',odisha:'Odisha',other:'India (General)'};
+  g('region-label') && (g('region-label').textContent = regionNames[region]||'India');
+  g('iron-hint')    && (g('iron-hint').textContent    = foods.iron.slice(0,3).join(', '));
+  g('protein-hint') && (g('protein-hint').textContent = foods.protein.slice(0,3).join(', '));
+
+  // ── Run hybrid engine ─────────────────────────────────────────
+  const hybrid = runHybridNutrition(vitals, APP.nutr, weeks);
+
+  // ── Build summary panel ───────────────────────────────────────
+  const urgCol = {fine:'var(--success)', needed:'var(--warning)', urgent:'var(--danger)'};
+  const urgBg  = {fine:'var(--success-light)', needed:'var(--warning-light)', urgent:'var(--danger-light)'};
+  const urgIco = {fine:'🟢', needed:'🟡', urgent:'🔴'};
+  const nutrientLabels = {iron:'Iron', protein:'Protein', hydration:'Hydrate', folic:'Folic'};
+
+  const summaryItems = Object.entries(hybrid).map(([n, h]) => `
+    <div style="flex:1;text-align:center;padding:8px 4px;background:${urgBg[h.urgency]};border-radius:var(--rx);margin:2px">
+      <div style="font-size:16px">${urgIco[h.urgency]}</div>
+      <div style="font-size:10px;font-weight:700;color:${urgCol[h.urgency]};margin-top:2px;text-transform:uppercase">${nutrientLabels[n]}</div>
+      <div style="font-size:9px;color:var(--text-muted);margin-top:1px">${h.conf}% conf</div>
+      ${!h.agreed ? `<div style="font-size:8px;color:#6D28D9;margin-top:1px">⚡ ML↔Rule differ</div>` : ''}
+    </div>`).join('');
+
+  // Blend bar for each nutrient (visual explainability)
+  const blendRows = Object.entries(hybrid).map(([n, h]) => {
+    const [fp,np,up] = h.blended;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="font-size:11px;width:60px;color:var(--text-muted);flex-shrink:0">${nutrientLabels[n]}</span>
+      <div style="flex:1;height:8px;border-radius:4px;overflow:hidden;display:flex">
+        <div style="width:${fp}%;background:var(--success);opacity:.8"></div>
+        <div style="width:${np}%;background:var(--warning);opacity:.8"></div>
+        <div style="width:${up}%;background:var(--danger);opacity:.8"></div>
+      </div>
+      <span style="font-size:10px;font-weight:600;color:${urgCol[h.urgency]};width:42px;text-align:right">${h.urgency}</span>
+    </div>`;
+  }).join('');
+
+  const summaryCard = `
+    <div style="background:var(--surface);border-radius:var(--rs);padding:16px;box-shadow:var(--sh);margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:18px">🔬</span>
+        <div>
+          <div style="font-size:13px;font-weight:600">Hybrid Assessment</div>
+          <div style="font-size:10px;color:var(--text-muted)">60% ML · 40% WHO–ICMR Rules · On-device</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:14px">${summaryItems}</div>
+      <div style="margin-bottom:6px">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:6px">Urgency Breakdown</div>
+        ${blendRows}
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <span style="font-size:9px;color:var(--success)">🟩 Fine</span>
+          <span style="font-size:9px;color:var(--warning)">🟨 Needed</span>
+          <span style="font-size:9px;color:var(--danger)">🟥 Urgent</span>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Build recommendation cards ────────────────────────────────
+  // Only show cards where urgency is not 'fine'
+  const cards = [];
+
+  const nutrientConfig = {
+    iron: {
+      icon: '🥬',
+      title: (h) => h.urgency==='urgent' ? '🩸 Iron — Urgent Action Needed' : '🥬 Low Iron Intake',
+      reason: (h) => h.urgency==='urgent'
+        ? `ML + Rules both flag iron as urgent. SpO₂ ${vitals.spo2}%, HR ${vitals.hr} bpm — anaemia risk is high in ${tf.label}.`
+        : `Iron needed in ${tf.label}. ${h.agreed ? 'ML and clinical rules agree.' : 'ML and rules differ — hybrid score shown.'}`,
+      foods: foods.iron,
+      action: 'Eat iron-rich foods at your next meal. Add lemon juice to improve absorption. Avoid tea within 1 hour.',
+    },
+    protein: {
+      icon: '🥚',
+      title: (h) => h.urgency==='urgent' ? '🥚 Protein — Urgent' : '🥚 Low Protein',
+      reason: (h) => `Protein ${h.urgency} for ${tf.label}. ${vitals.stress > 60 ? `High stress (${vitals.stress}/100) increases protein demand.` : 'Target 70g/day during pregnancy.'}`,
+      foods: foods.protein,
+      action: 'Include one protein source at every meal. Eggs, dal, or groundnuts are easy options.',
+    },
+    hydration: {
+      icon: '💧',
+      title: (h) => h.urgency==='urgent' ? '💧 Dehydration — Urgent' : '💧 Low Hydration',
+      reason: (h) => h.urgency==='urgent'
+        ? `HR ${vitals.hr} bpm, Temp ${vitals.temp}°C — ML + rules flag dehydration risk.`
+        : 'Hydration is below recommended levels. Aim for 2.5–3 litres daily.',
+      foods: foods.hydration,
+      action: 'Drink 2 glasses of water now. Set hourly reminders for the rest of the day.',
+    },
+    folic: {
+      icon: '💊',
+      title: (h) => h.urgency==='urgent' ? '💊 Folic Acid — Critical (1st Trimester)' : '💊 Folic Acid Needed',
+      reason: (h) => h.urgency==='urgent'
+        ? '1st trimester: folic acid prevents neural tube defects. Most critical window.'
+        : 'Continue daily prenatal vitamins. Folate from food also helps.',
+      foods: foods.folic,
+      action: 'Take your prenatal supplement today. Eat drumstick leaves, moong dal, or groundnuts.',
+    },
+  };
+
+  Object.entries(hybrid).forEach(([n, h]) => {
+    if (h.urgency === 'fine') return; // skip — nutrient is fine
+    const cfg = nutrientConfig[n];
+    const priColor = {urgent:'var(--danger)', needed:'var(--warning)'};
+    const priBg    = {urgent:'var(--danger-light)', needed:'var(--warning-light)'};
+    const mlTag    = h.agreed
+      ? `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:#ECFDF5;color:var(--success);font-weight:600">🤖 ML + Rules agree</span>`
+      : `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:#EDE9FE;color:#6D28D9;font-weight:600">🤖 ML: ${h.mlClass} · Rules: ${h.ruleClass}</span>`;
+
+    cards.push(`
+      <div style="background:var(--surface);border-radius:var(--rs);padding:16px;box-shadow:var(--sh);margin-bottom:10px;border-left:3px solid ${priColor[h.urgency]||'var(--accent)'}">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">${cfg.icon}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${cfg.title(h)}</div>
+            <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">
+              <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:${priBg[h.urgency]||'var(--accent-light)'};color:${priColor[h.urgency]||'var(--accent)'};text-transform:uppercase">${h.urgency==='urgent'?'⚡ Urgent':'⚠️ Needed'}</span>
+              ${mlTag}
+              <span style="font-size:9px;padding:2px 7px;border-radius:10px;background:var(--surface-2);color:var(--text-muted)">${h.conf}% confident</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.5">${cfg.reason(h)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+          ${cfg.foods.map(f=>`<span style="background:var(--surface-2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:500">${f}</span>`).join('')}
+        </div>
+        <div style="background:var(--surface-2);border-radius:var(--rx);padding:8px 10px;font-size:12px;color:var(--text-primary);line-height:1.4">
+          <strong>Action:</strong> ${cfg.action}
+        </div>
+      </div>`);
+  });
+
+  // All good — every nutrient is fine
+  if (!cards.length) {
+    c.innerHTML = summaryCard + `
+      <div class="empty-state" style="padding:24px">
+        <div class="empty-icon">🌟</div>
+        <div class="empty-title">Excellent nutrition today!</div>
+        <div class="empty-sub">ML and clinical rules both confirm all nutrients are on track.</div>
+      </div>`;
+    updateCheckboxTags();
+    return;
+  }
+
+  c.innerHTML = summaryCard + cards.join('');
+  // Always update checkbox visual nudges after rendering
+  updateCheckboxTags();
+}
+
+/* extend toggleNutrition to also re-render recs */
+const _origToggle = toggleNutrition;
+// patch after definition (defined earlier in file, we override here)
+// ─ done inline in the INIT section below ─
+
+/* ═══════════════════════════════════════════════════════════════
+   NUTRITION NOTIFICATION PUSH  (BioNutriSense alerts)
+   Sends short actionable messages to the alerts screen
+═══════════════════════════════════════════════════════════════ */
+let _lastNutrNotif = 0;
+function pushNutriNotifs() {
+  const now = Date.now();
+  if (now - _lastNutrNotif < 10 * 60 * 1000) return;
+  const p = DB.patients.find(x => x.id === APP.pid);
+  if (!p) return;
+  const v  = DB.vitals[APP.pid] || {hr:78,spo2:98,temp:36.8,stress:24};
+  const rg = APP.region || p.region || 'other';
+  const foods = REGIONAL_FOODS[rg] || REGIONAL_FOODS.other;
+
+  // Run hybrid engine — ML sets priority, but we ALWAYS remind if unchecked
+  const hybrid = runHybridNutrition(v, APP.nutr, p.weeks||24);
+
+  // Iron — always remind if not logged
+  if (!APP.nutr.iron) {
+    const ex  = foods.iron.slice(0,3).join(', ');
+    const pri = hybrid.iron.urgency === 'urgent' ? 'high' : 'medium';
+    const pfx = hybrid.iron.urgency === 'urgent' ? `⚠️ Urgent (${hybrid.iron.conf}%)` : `📝 Reminder (${hybrid.iron.conf}%)`;
+    addNotif(APP.pid, `🥬 Iron not logged — ${pfx}`, `Please log iron intake. Try ${ex}.`, pri, null);
+  }
+  // Protein — always remind if not logged
+  if (!APP.nutr.protein) {
+    const ex  = foods.protein.slice(0,2).join(' or ');
+    const pri = hybrid.protein.urgency === 'urgent' ? 'high' : 'medium';
+    addNotif(APP.pid, `🥚 Protein not logged — ${hybrid.protein.urgency} (${hybrid.protein.conf}%)`,
+      `Please tick protein when consumed. Try ${ex}.`, pri, null);
+  }
+  // Hydration — always remind if not logged
+  if (!APP.nutr.hydration) {
+    const pri = hybrid.hydration.urgency === 'urgent' ? 'high' : 'medium';
+    addNotif(APP.pid, `💧 Hydration not logged — ${hybrid.hydration.urgency} (${hybrid.hydration.conf}%)`,
+      `Drink ${foods.hydration[0]} or water and tick the hydration checkbox.`, pri, null);
+  }
+  // Folic — always remind if not logged
+  if (!APP.nutr.folic) {
+    const pri = hybrid.folic.urgency === 'urgent' ? 'high' : 'low';
+    addNotif(APP.pid, `💊 Supplements not logged — ${hybrid.folic.urgency} (${hybrid.folic.conf}%)`,
+      'Have you taken your prenatal vitamin today? Please tick the checkbox.', pri, null);
+  }
+
+  // Extra urgent alert when iron critical + low SpO₂
+  if (!APP.nutr.iron && hybrid.iron.urgency === 'urgent' && v.spo2 < 95) {
+    addNotif(APP.pid, '🩸 Anaemia Risk — Log Iron Urgently',
+      `SpO₂ ${v.spo2}% is low. Eat ${foods.iron[0]} now and tick iron checkbox.`, 'high', null);
+  }
+
+  _lastNutrNotif = now;
+  badges();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STARTUP — boot with auto-login check
+═══════════════════════════════════════════════════════════════ */
+/* ── Update checkbox visual nudges based on hybrid urgency ─── */
+function updateCheckboxTags() {
+  const p = DB.patients.find(x => x.id === APP.pid);
+  if (!p) return;
+  const vitals = DB.vitals[APP.pid] || {hr:78,spo2:98,temp:36.8,stress:24};
+  const hybrid = runHybridNutrition(vitals, APP.nutr, p.weeks||24);
+
+  const urgConfig = {
+    urgent: { bg:'#FEE2E2', color:'#991B1B', text:'⚠️ Log now',      border:'#FCA5A5' },
+    needed: { bg:'#FEF3C7', color:'#92400E', text:'📝 Please log',   border:'#FCD34D' },
+    fine:   { bg:'',        color:'',         text:'',               border:''         },
+  };
+
+  ['iron','protein','hydration','folic'].forEach(n => {
+    const h   = hybrid[n];
+    const row = g('cb-row-'+n);
+    const tag = g('cb-tag-'+n);
+
+    if (!row || !tag) return;
+
+    if (APP.nutr[n]) {
+      // Already checked — green background, no tag
+      row.style.background = 'var(--success-light)';
+      row.style.border     = '1px solid #A7F3D0';
+      row.style.borderRadius = 'var(--rs)';
+      tag.style.display    = 'none';
+    } else {
+      // Unchecked — colour by urgency, always show tag
+      const cfg = urgConfig[h.urgency];
+      row.style.background   = cfg.bg || 'var(--surface-2)';
+      row.style.border       = cfg.border ? `1px solid ${cfg.border}` : 'none';
+      row.style.borderRadius = 'var(--rs)';
+      tag.textContent        = cfg.text || '📝 Please log';
+      tag.style.display      = 'inline-block';
+      tag.style.background   = cfg.bg || '#F3F4F6';
+      tag.style.color        = cfg.color || 'var(--text-muted)';
+    }
+  });
+}
+
+// Override toggleNutrition to also refresh checkbox tags
+function toggleNutrition(k){
+  APP.nutr[k]=!APP.nutr[k];
+  const b=g('cb-'+k+'-box');if(b)b.className='checkbox-box'+(APP.nutr[k]?' checked':'');
+  const s=nutrScore(APP.nutr);
+  const f=g('nutrition-fill');if(f){f.style.width=s+'%';f.style.background=s>=75?'var(--success)':s>=50?'var(--warning)':'var(--danger)';}
+  g('nutrition-score-label')&&(g('nutrition-score-label').textContent=s+' / 100');
+  updateCheckboxTags();
+  if(APP.role==='mother'){refreshMother();renderNutriRecs();}
+}
+
+// Patch _onBeforeShow to render nutrition recs when screen is opened
+const _origOnBeforeShow = _onBeforeShow;
+function _onBeforeShow(id) {
+  if (id === 'screen-mother-alerts')      { renderNotifs(); }
+  if (id === 'screen-mother-history')     { renderHistory(); }
+  if (id === 'screen-mother-nutrition')   { _nutrReminder(); renderNutriRecs(); }
+  if (id === 'screen-worker-patients')    { renderPatientList(); }
+  if (id === 'screen-worker-alerts')      { renderWorkerAlerts(); }
+  if (id === 'screen-doctor-escalations') { renderDoctorAlerts(); }
+  if (id === 'screen-doctor-history')     { renderDoctorHistory(); }
+}
+
+// Patch enterMother to also set region
+const _origEnterMother = enterMother;
+function enterMother(){
+  const saved=localStorage.getItem('nc_pat');
+  if(saved){try{const p=JSON.parse(saved);APP.pid=p.id;APP.region=p.region||'other';if(!DB.patients.find(x=>x.id===p.id))DB.patients.push(p);if(!DB.vitals[p.id])DB.vitals[p.id]={hr:76,spo2:98,temp:36.7,stress:20};if(!DB.hist[p.id])DB.hist[p.id]=[];}catch(_){}}
+  const p=DB.patients.find(x=>x.id===APP.pid)||DB.patients[0];APP.pid=p.id;
+  const h=new Date().getHours();
+  g('mother-greeting').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', '+p.name.split(' ')[0];
+  g('mother-pid-label').textContent=p.id+' · Week '+p.weeks;
+  g('s-name').textContent=p.name;g('s-pid').textContent=p.id;g('s-weeks').textContent=p.weeks;g('s-worker').textContent=p.worker;
+  const t=getTrimester(p.weeks||24);
+  g('s-trimester')&&(g('s-trimester').textContent=TRIMESTER_FOCUS[t].label);
+  // Pre-select region dropdown in settings
+  const sr=g('s-region');if(sr)sr.value=APP.region||p.region||'other';
+  navigate('screen-mother-vitals');
+  refreshMother();
+  BLE.startMock();
+  // Try silent auto-reconnect if device was paired before
+  setTimeout(() => BLE.tryAutoReconnect(), 1500);
+  setTimeout(()=>{addNotif(p.id,'🥗 Daily Nutrition Check','Log your nutrition for today!','low',null);badges();pushNutriNotifs();},5000);
+}
+
+// Patch completeRegistration to save region
+/* ═══════════════════════════════════════════════════════════════
+   REGISTRATION FIELD VALIDATION
+═══════════════════════════════════════════════════════════════ */
+const FIELD_RULES = {
+  name: {
+    validate: v => {
+      const trimmed = v.trim();
+      if (trimmed.length < 2)       return 'Name must be at least 2 characters.';
+      if (trimmed.length > 50)      return 'Name cannot exceed 50 characters.';
+      if (/\d/.test(trimmed))       return 'Name should not contain numbers.';
+      if (/[^a-zA-Z\s\u0900-\u097F\u0B80-\u0BFF]/.test(trimmed))
+                                    return 'Name should contain letters only.';
+      return null;
+    },
+    fix: null, // can't auto-fix text
+  },
+  age: {
+    validate: v => {
+      const n = parseInt(v);
+      if (isNaN(n) || v === '')     return 'Please enter your age.';
+      if (n < 16)                   return 'Minimum age is 16 years.';
+      if (n > 55)                   return 'Maximum age is 55 years.';
+      return null;
+    },
+    fix: v => Math.min(55, Math.max(16, parseInt(v) || 16)),
+  },
+  weeks: {
+    validate: v => {
+      const n = parseInt(v);
+      if (isNaN(n) || v === '')     return 'Please enter weeks pregnant.';
+      if (n < 1)                    return 'Minimum is 1 week.';
+      if (n > 42)                   return 'Pregnancy cannot exceed 42 weeks.';
+      return null;
+    },
+    fix: v => Math.min(42, Math.max(1, parseInt(v) || 1)),
+  },
+};
+
+function validateField(key, input) {
+  const rule = FIELD_RULES[key];
+  if (!rule) return true;
+
+  const err   = rule.validate(input.value);
+  const errEl = g('err-' + key);
+
+  if (err) {
+    input.style.borderColor = 'var(--danger)';
+    if (errEl) { errEl.textContent = err; errEl.style.display = 'block'; }
+    // Auto-fix numeric fields (clamp to valid range)
+    if (rule.fix && input.value !== '') {
+      input.value = rule.fix(input.value);
+      // Re-check after fix
+      const errAfter = rule.validate(input.value);
+      if (!errAfter) {
+        input.style.borderColor = 'var(--success)';
+        if (errEl) errEl.style.display = 'none';
+      }
+    }
+    return false;
+  } else {
+    input.style.borderColor = 'var(--success)';
+    if (errEl) errEl.style.display = 'none';
+    return true;
+  }
+}
+
+function clampWeeks(input) {
+  const val = parseInt(input.value);
+  if (isNaN(val)) return;
+  if (val > 42) {
+    input.value = 42;
+    input.style.borderColor = 'var(--danger)';
+    const err = g('err-weeks');
+    if (err) { err.textContent = 'Maximum is 42 weeks.'; err.style.display = 'block'; }
+    setTimeout(() => {
+      input.style.borderColor = 'var(--success)';
+      if (err) err.style.display = 'none';
+    }, 1500);
+  } else if (val >= 1) {
+    input.style.borderColor = 'var(--success)';
+    const err = g('err-weeks');
+    if (err) err.style.display = 'none';
+  }
+}
+
+function clearFieldError(key, input) {
+  // While typing — just reset border to neutral, hide error
+  // Full validation runs on blur (when user leaves the field)
+  input.style.borderColor = 'var(--border)';
+  const errEl = g('err-' + key);
+  if (errEl) errEl.style.display = 'none';
+}
+
+function completeRegistration(){
+  // Validate all fields before saving
+  const nameOk  = validateField('name',  g('reg-name'));
+  const ageOk   = validateField('age',   g('reg-age'));
+  const weeksOk = validateField('weeks', g('reg-weeks'));
+
+  if (!nameOk)  { toast('Name Required',  FIELD_RULES.name.validate(g('reg-name').value),  'warning', '⚠️'); g('reg-name').focus();  return; }
+  if (!ageOk)   { toast('Invalid Age',    FIELD_RULES.age.validate(g('reg-age').value),    'warning', '⚠️'); g('reg-age').focus();   return; }
+  if (!weeksOk) { toast('Invalid Weeks',  FIELD_RULES.weeks.validate(g('reg-weeks').value),'warning', '⚠️'); g('reg-weeks').focus(); return; }
+
+  const pid    = g('reg-pid').value;
+  const region = g('reg-region') ? g('reg-region').value : 'other';
+  const p = {
+    id:     pid,
+    name:   g('reg-name').value.trim(),
+    age:    parseInt(g('reg-age').value),
+    weeks:  parseInt(g('reg-weeks').value),
+    worker: g('reg-worker').value,
+    region,
+  };
+  DB.patients.push(p);
+  DB.vitals[pid]  = {hr:76, spo2:98, temp:36.7, stress:20};
+  DB.hist[pid]    = [];
+  APP.pid         = pid;
+  APP.region      = region;
+  localStorage.setItem('nc_reg', '1');
+  localStorage.setItem('nc_pat', JSON.stringify(p));
+  toast('Welcome!', 'Patient ID: ' + pid, 'success', '✅');
+  enterMother();
+}
+
+// Nutrition notifs every 15 min
+setInterval(()=>{ if(APP.role==='mother') pushNutriNotifs(); }, 15*60*1000);
+
+/* ═══════════════════════════════════════════════════════════════
+   SEED & PERIODIC TASKS
+═══════════════════════════════════════════════════════════════ */
+addAlert('P002','High Heart Rate Detected','HR elevated at 95 bpm for 10 minutes.','high',{hr:95,spo2:95,temp:37.4,stress:62});
+addAlert('P002','Elevated Temperature','Temperature 37.4°C near fever threshold.','medium',{hr:92,spo2:96,temp:37.4,stress:55});
+addAlert('P001','Nutrition Reminder','Protein and iron not logged today.','low',null);
+
+setInterval(()=>{
+  if(APP.role==='mother'){
+    smartNotifs(DB.vitals[APP.pid]||{hr:78,spo2:98,temp:36.8,stress:24},APP.nutr,APP.pid);
+    _nutrReminder();
+  }
+},30000);
+
+setInterval(()=>{
+  if(g('s-last-pkt')&&BLE.state.lastPkt)g('s-last-pkt').textContent=ago(BLE.state.lastPkt);
+  if(g('s-pkt-count'))g('s-pkt-count').textContent=BLE.state.packets;
+},5000);
+
+console.log('%cNeuraCare 2.0 — BioNutriSense + Auto-login ready','color:#2563EB;font-weight:bold');
+
+// Boot — auto-login check replaces static splash
+bootApp();
+// Try GPS detection when registration form becomes visible
+setTimeout(detectGPS, 500);
+</script>
+</body>
+</html>
