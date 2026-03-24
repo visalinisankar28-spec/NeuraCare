@@ -45,7 +45,7 @@ All models run on-device in under 0.1ms. No API calls.
 
 | File | Description |
 
-| `neuracare app.html` | Complete mobile app — open in Chrome to run |
+| `index.html` | Complete mobile app — open in Chrome to run |
 | `neuracare_ml.py` | Python training pipeline for vitals risk model |
 | `neuracare_weights.json` | Trained vitals model weights (JS inference) |
 | `nutrition_ml_weights.json` | Trained nutrition model weights (JS inference) |
